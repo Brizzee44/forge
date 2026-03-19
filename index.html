@@ -404,7 +404,22 @@ function extractJSON(text) {
   throw new Error('Could not parse JSON from response');
 }
 
-async function generatePlan(profile, weekNum = 1, priorSummary = '', lastWeekLog = '') {
+function buildLastWeekLog(history, weekNum, weekPlan) {
+  const weekEntries = history.filter(h => h.week === weekNum && !h.isPrior);
+  if (!weekEntries.length) return '';
+  return weekEntries.map(entry => {
+    const day = weekPlan?.days?.find(d => d.workoutName === entry.workoutName);
+    if (!entry.loggedSets || !day) return `${entry.workoutName}: ${entry.summary}`;
+    const details = day.exercises.map((ex, ei) => {
+      const sets = entry.loggedSets[ei] || [];
+      const logged = sets.filter(s => s.weight || s.reps);
+      if (!logged.length) return `  ${ex.name}: no data`;
+      const setsStr = logged.map(s => `${s.weight||'?'}lbs×${s.reps||'?'}`).join(', ');
+      return `  ${ex.name}: ${setsStr}`;
+    }).join('\n');
+    return `${entry.workoutName}:\n${details}`;
+  }).join('\n\n');
+}
   const n = parseDaysCount(profile.days);
   const suggestedSplit = SPLIT_GUIDE[n] || SPLIT_GUIDE[4];
 
@@ -416,7 +431,12 @@ async function generatePlan(profile, weekNum = 1, priorSummary = '', lastWeekLog
    Suggested: ${suggestedSplit}. Choose what best fits their goal (${profile.goal}).`;
 
   const priorCtx = priorSummary ? `\nPRIOR HISTORY (calibrate intensity/weights from this):\n${priorSummary}\n` : '';
-  const lastCtx = lastWeekLog ? `\nLAST WEEK COMPLETED:\n${lastWeekLog}\n` : '';
+  const lastCtx = lastWeekLog ? `\nLAST WEEK ACTUAL LOGGED DATA:\n${lastWeekLog}\n` : '';
+
+  const progressInstruction = lastWeekLog ? `
+PROGRESSIVE OVERLOAD — REQUIRED FOR WEEK ${weekNum}:
+Use the logged data above to prescribe specific targets. For every exercise that appeared last week, add a "target" field with exact weight and rep prescription, e.g. "target": "4×8 @ 195lbs (+5lbs from last week)" or "target": "3×10 @ 135lbs (same weight, hit all reps cleanly)".
+Apply standard progression: ~5lbs upper body compounds, ~10lbs lower body, same weight if reps weren't completed, deload 10% if athlete showed signs of fatigue.` : '';
 
   const prompt = `You are FORGE, an expert AI personal trainer. Create a week ${weekNum} training plan.${priorCtx}${lastCtx}
 
@@ -428,18 +448,19 @@ ATHLETE PROFILE:
 - Notes / injuries: ${profile.notes || 'none'}
 
 ${splitInstruction}
+${progressInstruction}
 
 STRICT OUTPUT RULES:
 1. Return EXACTLY 7 day objects, Monday through Sunday.
 2. EXACTLY ${n} days must have "isRest": false. The other ${7 - n} must have "isRest": true.
 3. Every training day must have 4–5 exercises appropriate for that day's muscle group focus.
 4. Every exercise must be achievable with this equipment: ${profile.equipment}.
-5. Every exercise object must include: name (string), sets (number), reps (string), rest (string), notes (string).
-6. The workoutName and focus for each day must match the split you are using — they should be different across days, not all the same.
-${weekNum > 1 ? '7. Progress from last week: slightly increase volume or intensity.' : ''}
+5. Every exercise object must include: name (string), sets (number), reps (string), rest (string), notes (string). Include "target" (string) when progression data exists.
+6. The workoutName and focus for each day must match the split — different across days.
+${weekNum > 1 ? '7. Progress from last week using the actual logged data.' : ''}
 
-Return ONLY the JSON object below with no extra text, no markdown fences:
-{"weekTheme":"string","insight":"2-3 sentence personalised motivation referencing their goal","days":[{"dayName":"Monday","workoutName":"Upper Body A","focus":"Chest, Back, Shoulders","duration":"50 min","isRest":false,"exercises":[{"name":"Barbell Bench Press","sets":4,"reps":"6-8","rest":"2min","notes":"Drive through floor, full range"}]},{"dayName":"Tuesday","workoutName":"Rest","focus":"Recovery","duration":"","isRest":true,"exercises":[]}]}`;
+Return ONLY the JSON object with no extra text or markdown:
+{"weekTheme":"string","insight":"string","days":[{"dayName":"Monday","workoutName":"Upper Body A","focus":"Chest, Back, Shoulders","duration":"50 min","isRest":false,"exercises":[{"name":"Barbell Bench Press","sets":4,"reps":"6-8","rest":"2min","notes":"Drive through floor","target":"4×8 @ 190lbs (+5lbs)"}]},{"dayName":"Tuesday","workoutName":"Rest","focus":"Recovery","duration":"","isRest":true,"exercises":[]}]}`;
 
   const text = await callAI([{ role: 'user', content: prompt }], 4000);
   const plan = extractJSON(text);
@@ -745,8 +766,9 @@ function Dashboard({ state, onStartWorkout, onOpenChat, onMissedDays, onOpenSett
             return (
               <div
                 key={idx}
-                className={`day-card${isToday?' today':''}${done?' done':''}${isRest?' rest':''}`}
-                onClick={() => !isRest && !done && onStartWorkout(idx)}
+                className={`day-card${isToday&&!done?' today':''}${done?' done':''}${isRest?' rest':''}`}
+                style={{cursor: isRest ? 'default' : 'pointer'}}
+                onClick={() => !isRest && onStartWorkout(idx, done)}
               >
                 <div className="display" style={{fontSize:'26px',minWidth:'38px',color:done?'var(--green)':'var(--acc)'}}>
                   {day.dayName.slice(0,3).toUpperCase()}
@@ -757,7 +779,7 @@ function Dashboard({ state, onStartWorkout, onOpenChat, onMissedDays, onOpenSett
                     {isRest ? 'Rest & Recovery' : `${day.focus}${day.duration?' · '+day.duration:''}`}
                   </div>
                 </div>
-                {done && <span className="chip chip-green">✓ DONE</span>}
+                {done && <span className="chip chip-green" style={{whiteSpace:'nowrap'}}>✓ DONE · EDIT</span>}
                 {!done && isToday && !isRest && <span className="chip chip-acc">TODAY</span>}
                 {isRest && <span className="chip chip-muted">REST</span>}
               </div>
@@ -806,9 +828,46 @@ function SetRow({ set, setIdx, exIdx, onUpdate, onToggle }) {
   );
 }
 
-function ExerciseCard({ exercise, exIdx, sets, onUpdateSet, onToggleSet, onAddSet, onSwap, onRemove }) {
+function ExerciseCard({ exercise, exIdx, sets, onUpdateSet, onToggleSet, onAddSet, onSwap, onRemove, onFeedback }) {
   const [open, setOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+
+  const FEEDBACK_OPTIONS = [
+    ['😓', 'Too heavy — struggled'],
+    ['😴', 'Fatigued / not recovered'],
+    ['😌', 'Felt easy — could go heavier'],
+    ['🤕', 'Pain or discomfort'],
+    ['✅', 'Felt perfect as prescribed'],
+  ];
+
+  const submitFeedback = async (reason) => {
+    setShowFeedback(false);
+    setFeedbackLoading(true);
+    const completedSets = sets.filter(s => s.weight || s.reps);
+    const loggedStr = completedSets.map(s => `${s.weight||'?'}lbs×${s.reps||'?'}`).join(', ');
+    try {
+      const text = await callAI([{ role: 'user', content:
+        `An athlete is mid-workout and gave feedback on an exercise.
+Exercise: ${exercise.name}
+Prescribed: ${exercise.sets}×${exercise.reps}${exercise.target ? ' (target: ' + exercise.target + ')' : ''}
+Logged so far: ${loggedStr || 'not started yet'}
+Feedback: "${reason}"
+
+Adjust the remaining sets for this exercise. Return ONLY JSON:
+{"adjustedSets": [{"weight": 135, "reps": 8}, {"weight": 135, "reps": 8}], "message": "one sentence explaining the adjustment"}
+- adjustedSets should cover however many sets are remaining (total sets minus completed).
+- If feedback is positive, keep or increase slightly. If fatigued/heavy, reduce weight 5-10%, reduce reps, or both.` }], 200);
+      const result = extractJSON(text);
+      if (result.adjustedSets?.length) {
+        onFeedback(exIdx, completedSets.length, result.adjustedSets, result.message);
+      }
+    } catch(e) {
+      console.error('Feedback error:', e);
+    }
+    setFeedbackLoading(false);
+  };
 
   return (
     <div className="ex-card">
@@ -833,6 +892,52 @@ function ExerciseCard({ exercise, exIdx, sets, onUpdateSet, onToggleSet, onAddSe
         >✕</button>
         <div style={{marginLeft:'6px',color:'var(--muted2)',fontSize:'14px',transition:'transform 0.2s',transform:open?'rotate(180deg)':'none',flexShrink:0}}>▼</div>
       </div>
+
+      {/* Prescribed target banner */}
+      {exercise.target && (
+        <div style={{background:'rgba(68,255,170,0.07)',borderTop:'1px solid rgba(68,255,170,0.2)',padding:'8px 14px',display:'flex',alignItems:'center',gap:'8px'}}>
+          <span style={{fontSize:'13px'}}>🎯</span>
+          <div style={{flex:1}}>
+            <span style={{fontSize:'11px',letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--green)',fontWeight:700}}>THIS WEEK'S TARGET  </span>
+            <span style={{fontSize:'13px',color:'#ccc',fontFamily:'var(--font-mono)'}}>{exercise.target}</span>
+          </div>
+          <button
+            onClick={e => { e.stopPropagation(); setShowFeedback(v => !v); }}
+            style={{background:'transparent',border:'1px solid var(--border2)',color:'var(--muted2)',padding:'4px 9px',fontSize:'11px',cursor:'pointer',fontFamily:'var(--font-body)',letterSpacing:'1px',textTransform:'uppercase',flexShrink:0,transition:'all 0.15s'}}
+            onMouseOver={e=>{e.currentTarget.style.borderColor='var(--acc)';e.currentTarget.style.color='var(--acc)'}}
+            onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.color='var(--muted2)'}}
+          >{feedbackLoading ? '...' : '💬 FEEDBACK'}</button>
+        </div>
+      )}
+
+      {/* Feedback options (also available without target) */}
+      {!exercise.target && (
+        <div style={{padding:'6px 14px',borderTop:'1px solid var(--border)'}}>
+          <button
+            onClick={e => { e.stopPropagation(); setShowFeedback(v => !v); }}
+            style={{background:'transparent',border:'none',color:'var(--muted2)',fontSize:'12px',cursor:'pointer',fontFamily:'var(--font-body)',letterSpacing:'1px',textTransform:'uppercase',padding:'4px 0',transition:'color 0.15s'}}
+            onMouseOver={e=>e.currentTarget.style.color='var(--acc)'}
+            onMouseOut={e=>e.currentTarget.style.color='var(--muted2)'}
+          >{feedbackLoading ? '⏳ Adjusting...' : '💬 How does this feel?'}</button>
+        </div>
+      )}
+
+      {/* Feedback picker */}
+      {showFeedback && (
+        <div style={{borderTop:'1px solid var(--border)',padding:'10px 14px',background:'var(--s2)'}}>
+          <div className="label" style={{marginBottom:'8px'}}>How did this feel?</div>
+          <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+            {FEEDBACK_OPTIONS.map(([ic, label]) => (
+              <button key={label}
+                onClick={() => submitFeedback(label)}
+                style={{background:'var(--s1)',border:'1px solid var(--border2)',color:'var(--txt)',padding:'9px 12px',fontSize:'13px',cursor:'pointer',fontFamily:'var(--font-body)',textAlign:'left',transition:'all 0.15s',display:'flex',alignItems:'center',gap:'10px'}}
+                onMouseOver={e=>{e.currentTarget.style.borderColor='var(--acc)';e.currentTarget.style.color='var(--acc)'}}
+                onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.color='var(--txt)'}}
+              >{ic} {label}</button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {confirmRemove && (
         <div className="rm-confirm">
@@ -868,7 +973,7 @@ function ExerciseCard({ exercise, exIdx, sets, onUpdateSet, onToggleSet, onAddSe
   );
 }
 
-function WorkoutScreen({ dayIdx, weekPlan, profile, sets, onUpdateSet, onToggleSet, onAddSet, onSwap, onRemove, onAddExercise, onFinish, onBack, onVoiceLog, coachTip, coachLoading }) {
+function WorkoutScreen({ dayIdx, weekPlan, profile, sets, isReopening, onUpdateSet, onToggleSet, onAddSet, onSwap, onRemove, onAddExercise, onFinish, onBack, onVoiceLog, onFeedback, coachTip, coachLoading }) {
   const day = weekPlan.days[dayIdx];
   const exercises = day.exercises;
 
@@ -976,12 +1081,20 @@ Return ONLY JSON: {"exerciseIndex": 0, "sets": [{"weight": 135, "reps": 8}, {"we
       {/* Scrollable content */}
       <div className="page" style={{paddingBottom:'90px'}}>
         <div style={{padding:'12px 16px 0'}}>
+          {/* Reopen banner */}
+          {isReopening && (
+            <div style={{background:'rgba(68,255,170,0.08)',border:'1px solid var(--green)',borderLeft:'3px solid var(--green)',padding:'10px 14px',marginBottom:'12px',fontSize:'13px',color:'var(--green)'}}>
+              ✏️ <strong>Editing completed workout</strong> — make your changes and hit Update when done.
+            </div>
+          )}
+
           {exercises.map((ex, ei) => (
             <ExerciseCard
               key={`${ei}-${ex.name}`}
               exercise={ex} exIdx={ei} sets={sets[ei] || []}
               onUpdateSet={onUpdateSet} onToggleSet={onToggleSet}
               onAddSet={onAddSet} onSwap={onSwap} onRemove={onRemove}
+              onFeedback={onFeedback}
             />
           ))}
 
@@ -1018,7 +1131,7 @@ Return ONLY JSON: {"exerciseIndex": 0, "sets": [{"weight": 135, "reps": 8}, {"we
 
           {/* Finish */}
           <button className="btn btn-acc2" style={{width:'100%',marginBottom:'24px'}} onClick={onFinish}>
-            ✅ FINISH WORKOUT
+            {isReopening ? '💾 UPDATE WORKOUT' : '✅ FINISH WORKOUT'}
           </button>
         </div>
       </div>
@@ -1522,9 +1635,26 @@ function App() {
     });
   }, []);
 
-  const updateState = (patch) => setAppState(s => ({ ...s, ...patch }));
+  // ── Exercise feedback — adjust remaining sets on the fly ──
+  const handleExerciseFeedback = useCallback((ei, completedCount, adjustedSets, message) => {
+    setWorkoutSets(prev => {
+      const current = [...(prev[ei] || [])];
+      // Keep completed sets, replace remaining with adjusted values
+      adjustedSets.forEach((s, i) => {
+        const targetIdx = completedCount + i;
+        if (targetIdx < current.length) {
+          current[targetIdx] = { ...current[targetIdx], weight: s.weight != null ? String(s.weight) : current[targetIdx].weight, reps: s.reps != null ? String(s.reps) : current[targetIdx].reps };
+        } else {
+          current.push({ weight: s.weight != null ? String(s.weight) : '', reps: s.reps != null ? String(s.reps) : '', done: false });
+        }
+      });
+      return { ...prev, [ei]: current };
+    });
+    if (message) setCoachTip(message);
+    setToast('Sets adjusted based on your feedback');
+  }, []);
 
-  // ── Onboarding complete ──
+  const updateState = (patch) => setAppState(s => ({ ...s, ...patch }));
   const handleOnboardComplete = async (profile) => {
     updateState({ profile });
     setScreen('generating');
@@ -1541,16 +1671,31 @@ function App() {
     }
   };
 
+  const [isReopening, setIsReopening] = useState(false);
+
   // ── Start workout ──
-  const handleStartWorkout = async (dayIdx) => {
+  const handleStartWorkout = async (dayIdx, reopening = false) => {
     const day = appState.weekPlan.days[dayIdx];
+
+    // If reopening, try to restore logged sets from history
     const initSets = {};
-    day.exercises.forEach((ex, ei) => {
-      initSets[ei] = Array.from({ length: ex.sets }, () => ({ weight: '', reps: '', done: false }));
-    });
+    if (reopening) {
+      const histEntry = [...appState.history].reverse().find(h => h.dayIndex === dayIdx && h.week === appState.weekNum);
+      day.exercises.forEach((ex, ei) => {
+        // Restore saved sets if available, otherwise blank
+        const saved = histEntry?.loggedSets?.[ei];
+        initSets[ei] = saved || Array.from({ length: ex.sets }, () => ({ weight: '', reps: '', done: false }));
+      });
+    } else {
+      day.exercises.forEach((ex, ei) => {
+        initSets[ei] = Array.from({ length: ex.sets }, () => ({ weight: '', reps: '', done: false }));
+      });
+    }
+
     setWorkoutDayIdx(dayIdx);
     workoutDayIdxRef.current = dayIdx;
     setWorkoutSets(initSets);
+    setIsReopening(reopening);
     setCoachTip(''); setCoachLoading(true);
     setScreen('workout');
 
@@ -1662,23 +1807,32 @@ function App() {
       date: new Date().toLocaleDateString(),
       dayIndex: workoutDayIdx, week: appState.weekNum,
       workoutName: day.workoutName, focus: day.focus,
-      summary, isPrior: false
+      summary, isPrior: false,
+      loggedSets: { ...workoutSets }, // save for restore on reopen
     };
 
-    const newHistory = [...appState.history, entry];
+    let newHistory;
+    if (isReopening) {
+      // Replace the existing entry for this day/week instead of adding a duplicate
+      newHistory = appState.history.map(h =>
+        h.dayIndex === workoutDayIdx && h.week === appState.weekNum ? entry : h
+      );
+    } else {
+      newHistory = [...appState.history, entry];
+    }
+
     const workoutDays = appState.weekPlan.days.filter(d => !d.isRest);
     const completedThisWeek = newHistory.filter(h => h.week === appState.weekNum && !h.isPrior).length;
 
     setScreen('main'); setTab('dashboard');
-    setWorkoutDayIdx(null); setWorkoutSets({});
+    setWorkoutDayIdx(null); setWorkoutSets({}); setIsReopening(false);
 
-    if (completedThisWeek >= workoutDays.length) {
-      // Week complete — generate next week
+    if (!isReopening && completedThisWeek >= workoutDays.length) {
       updateState({ history: newHistory });
       const newWeek = appState.weekNum + 1;
       setGenMsg(`Week complete! Building Week ${newWeek}...`);
       setScreen('generating');
-      const lastLog = newHistory.slice(-7).map(h=>`${h.workoutName}: ${h.summary}`).join('\n');
+      const lastLog = buildLastWeekLog(newHistory, appState.weekNum, appState.weekPlan);
       try {
         const plan = await generatePlan(appState.profile, newWeek, appState.priorSummary, lastLog);
         updateState({ weekPlan: plan, weekNum: newWeek, history: newHistory });
@@ -1688,7 +1842,7 @@ function App() {
       setScreen('main'); setTab('dashboard');
     } else {
       updateState({ history: newHistory });
-      setToast('Workout logged! 💪');
+      setToast(isReopening ? 'Workout updated! 💪' : 'Workout logged! 💪');
     }
   };
 
@@ -1778,6 +1932,7 @@ function App() {
           weekPlan={appState.weekPlan}
           profile={appState.profile}
           sets={workoutSets}
+          isReopening={isReopening}
           onUpdateSet={handleUpdateSet}
           onToggleSet={handleToggleSet}
           onAddSet={handleAddSet}
@@ -1787,6 +1942,7 @@ function App() {
           onFinish={handleFinishWorkout}
           onBack={() => { setScreen('main'); setTab('dashboard'); }}
           onVoiceLog={handleVoiceLog}
+          onFeedback={handleExerciseFeedback}
           coachTip={coachTip}
           coachLoading={coachLoading}
         />
