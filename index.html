@@ -284,11 +284,19 @@ const SPLIT_GUIDE = {
 async function callAI(messages, maxTokens = 1000) {
   const res = await fetch(API_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
     body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages })
   });
-  if (!res.ok) throw new Error(`API error ${res.status}`);
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    throw new Error(`API ${res.status}: ${errBody}`);
+  }
   const data = await res.json();
+  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
   return data.content.map(c => c.text || '').join('');
 }
 
@@ -705,26 +713,47 @@ function WorkoutScreen({ dayIdx, weekPlan, profile, sets, onUpdateSet, onToggleS
   const mins = useMemo(() => estimateWorkoutMins(exercises), [exercises]);
   const totalSets = useMemo(() => exercises.reduce((a, ex) => a + (ex.sets || 3), 0), [exercises]);
 
-  const toggleVoice = () => {
+  const toggleVoice = async () => {
     if (voiceActive) {
       srRef.current?.stop();
       setVoiceActive(false);
       return;
     }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert('Voice not supported in this browser. Try Chrome.'); return; }
+    if (!SR) {
+      alert('Voice input is not supported in this browser.\n\niOS: Use Safari\nAndroid: Use Chrome');
+      return;
+    }
+    // Request mic permission explicitly first
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch(permErr) {
+      alert('Microphone access denied. Please allow microphone access in your browser settings and try again.');
+      return;
+    }
     const sr = new SR();
     sr.continuous = false; sr.interimResults = true; sr.lang = 'en-US';
     sr.onresult = e => {
       const t = Array.from(e.results).map(r => r[0].transcript).join('');
       setVoiceText(t);
     };
+    sr.onerror = e => {
+      console.error('Speech recognition error:', e.error);
+      setVoiceActive(false);
+      if (e.error === 'not-allowed') alert('Microphone permission denied. Check your browser settings.');
+      else if (e.error === 'no-speech') setVoiceText('No speech detected — try again.');
+      else setVoiceText(`Voice error: ${e.error}`);
+    };
     sr.onend = () => setVoiceActive(false);
-    sr.onerror = () => setVoiceActive(false);
     srRef.current = sr;
-    sr.start();
-    setVoiceActive(true);
-    setVoiceText('');
+    try {
+      sr.start();
+      setVoiceActive(true);
+      setVoiceText('Listening...');
+    } catch(startErr) {
+      console.error('SR start error:', startErr);
+      alert('Could not start voice recognition: ' + startErr.message);
+    }
   };
 
   return (
@@ -852,12 +881,14 @@ function ImportScreen({ profile, onImported }) {
       const text = await callAI([{ role: 'user', content:
         `Parse this workout history into sessions. Goal: ${profile.goal}, Equipment: ${profile.equipment}.
 History: "${freeText}"
-Return ONLY JSON array: [{"date":"approx date","workoutName":"Push Day","focus":"Chest,Shoulders","summary":"Bench 3x8@185, OHP 3x10@115","strengthBaseline":"Bench:185x8"}]` }], 1200);
-      const parsed = parseJSON(text);
+Return ONLY a JSON array with no extra text: [{"date":"approx date e.g. 2 weeks ago","workoutName":"Push Day","focus":"Chest, Shoulders","summary":"Bench 3x8@185, OHP 3x10@115","strengthBaseline":"Bench: 185x8"}]` }], 1500);
+      const parsed = extractJSON(text);
+      if (!Array.isArray(parsed)) throw new Error('Response was not an array');
       onImported(parsed.map(s => ({ date: s.date, dayIndex: -1, week: 0, workoutName: s.workoutName, focus: s.focus||'', summary: s.summary, isPrior: true })), freeText);
       setToast(`✓ ${parsed.length} sessions imported!`);
     } catch(e) {
-      setToast('Parse failed — try being more specific');
+      console.error('Import error:', e);
+      setToast('Import failed: ' + e.message);
     }
     setLoading(false);
   };
@@ -977,15 +1008,19 @@ User: ${profile?.name}, Goal: ${profile?.goal}, Experience: ${profile?.experienc
     setLoading(false);
   };
 
-  const toggleVoice = () => {
+  const toggleVoice = async () => {
     if (voiceActive) { srRef.current?.stop(); setVoiceActive(false); return; }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
+    if (!SR) { alert('Voice not supported. Use Safari on iOS or Chrome on Android.'); return; }
+    try { await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch { alert('Microphone access denied. Allow mic access in browser settings.'); return; }
     const sr = new SR();
     sr.continuous = false; sr.interimResults = true; sr.lang = 'en-US';
     sr.onresult = e => { setInput(Array.from(e.results).map(r=>r[0].transcript).join('')); };
+    sr.onerror = e => { console.error('SR error:', e.error); setVoiceActive(false); };
     sr.onend = () => setVoiceActive(false);
-    srRef.current = sr; sr.start(); setVoiceActive(true);
+    srRef.current = sr;
+    try { sr.start(); setVoiceActive(true); } catch(err) { alert('Voice error: ' + err.message); }
   };
 
   return (
@@ -1052,7 +1087,10 @@ Do NOT suggest: ${dList||'none'}.
 Return ONLY JSON: {"name":"...","sets":3,"reps":"8-10","rest":"60s","notes":"coaching cue","reason":"why this is a great swap"}` }], 300);
       const rep = extractJSON(text);
       onSwap(exIdx, rep, reason);
-    } catch { alert('Could not find replacement — try again.'); }
+    } catch(err) {
+      console.error('Swap error:', err);
+      alert('Could not find replacement: ' + err.message);
+    }
     setLoading(false);
   };
 
@@ -1105,7 +1143,10 @@ Already doing: ${existing}. Equipment: ${profile.equipment}. Goal: ${profile.goa
 Request: "${aiPrompt||'something complementary'}". Do NOT suggest: ${dList||'none'}.
 Return ONLY JSON: {"name":"...","sets":3,"reps":"10-12","rest":"60s","notes":"coaching cue","reason":"why this fits"}` }], 300);
       setPending(extractJSON(text));
-    } catch { alert('Could not get suggestion — try again.'); }
+    } catch(err) {
+      console.error('Add exercise error:', err);
+      alert('Could not get suggestion: ' + err.message);
+    }
     setLoading(false);
   };
 
