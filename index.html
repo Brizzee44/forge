@@ -6,6 +6,12 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="FORGE"/>
+<meta name="application-name" content="FORGE"/>
+<meta name="theme-color" content="#0a0a0a"/>
+<meta name="description" content="FORGE — Your AI Personal Trainer"/>
+<link rel="manifest" id="pwa-manifest"/>
+<link rel="apple-touch-icon" id="apple-touch-icon"/>
 <title>FORGE — AI Personal Trainer</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
@@ -2247,6 +2253,194 @@ function navTo(name) {
     renderPriorSessions();
   }
 }
+</script>
+
+<script>
+// ===== PWA SETUP =====
+
+// Generate the app icon as a canvas-drawn SVG data URL
+function generateAppIcon(size) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, size, size);
+
+  // Accent border
+  ctx.strokeStyle = '#e8ff47';
+  ctx.lineWidth = size * 0.03;
+  ctx.strokeRect(size * 0.06, size * 0.06, size * 0.88, size * 0.88);
+
+  // FORGE text
+  ctx.fillStyle = '#e8ff47';
+  ctx.font = `900 ${size * 0.28}px Arial Black, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.letterSpacing = `${size * 0.02}px`;
+  ctx.fillText('FORGE', size / 2, size * 0.42);
+
+  // Subtitle
+  ctx.fillStyle = '#666666';
+  ctx.font = `600 ${size * 0.1}px Arial, sans-serif`;
+  ctx.fillText('AI TRAINER', size / 2, size * 0.65);
+
+  // Small dumbbell icon
+  ctx.fillStyle = '#e8ff47';
+  const barY = size * 0.8;
+  const barW = size * 0.35;
+  const barH = size * 0.04;
+  const plateW = size * 0.06;
+  const plateH = size * 0.09;
+  const cx = size / 2;
+  ctx.fillRect(cx - barW / 2, barY - barH / 2, barW, barH);
+  ctx.fillRect(cx - barW / 2 - plateW, barY - plateH / 2, plateW, plateH);
+  ctx.fillRect(cx + barW / 2, barY - plateH / 2, plateW, plateH);
+
+  return canvas.toDataURL('image/png');
+}
+
+function setupPWA() {
+  // Generate icons
+  const icon192 = generateAppIcon(192);
+  const icon512 = generateAppIcon(512);
+  const icon180 = generateAppIcon(180); // Apple touch icon
+
+  // Set apple touch icon
+  document.getElementById('apple-touch-icon').href = icon180;
+
+  // Build manifest object
+  const manifest = {
+    name: 'FORGE — AI Personal Trainer',
+    short_name: 'FORGE',
+    description: 'Your AI-powered personal trainer — workouts, tracking, and coaching.',
+    start_url: '.',
+    display: 'standalone',
+    background_color: '#0a0a0a',
+    theme_color: '#0a0a0a',
+    orientation: 'portrait',
+    icons: [
+      { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+      { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+    ],
+    categories: ['health', 'fitness', 'lifestyle'],
+    screenshots: []
+  };
+
+  // Inject manifest as blob URL
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+  const manifestURL = URL.createObjectURL(blob);
+  document.getElementById('pwa-manifest').href = manifestURL;
+}
+
+// ===== SERVICE WORKER (inline) =====
+// We register a service worker that caches everything for offline use
+const SW_CODE = `
+const CACHE = 'forge-v1';
+const OFFLINE_URLS = [
+  self.location.href,
+];
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(cache => {
+      return cache.addAll(OFFLINE_URLS).catch(() => {});
+    }).then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', e => {
+  // For API calls, always go network
+  if (e.request.url.includes('anthropic.com') || e.request.url.includes('fonts.googleapis.com')) {
+    e.respondWith(fetch(e.request).catch(() => new Response('offline', { status: 503 })));
+    return;
+  }
+  // For everything else, cache-first
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      if (cached) return cached;
+      return fetch(e.request).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE).then(cache => cache.put(e.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(e.request));
+    })
+  );
+});
+`;
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  const blob = new Blob([SW_CODE], { type: 'application/javascript' });
+  const swURL = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swURL, { scope: './' })
+    .then(reg => {
+      console.log('FORGE SW registered:', reg.scope);
+      // Cache the current page for offline use
+      if (reg.active) {
+        caches.open('forge-v1').then(cache => cache.add(window.location.href));
+      }
+    })
+    .catch(err => console.log('SW registration skipped:', err));
+}
+
+// ===== PWA INSTALL PROMPT (Android) =====
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  // Show install banner after a short delay if not already installed
+  setTimeout(showInstallBanner, 3000);
+});
+
+function showInstallBanner() {
+  if (!deferredInstallPrompt) return;
+  if (window.matchMedia('(display-mode: standalone)').matches) return; // already installed
+
+  const banner = document.createElement('div');
+  banner.id = 'install-banner';
+  banner.style.cssText = `
+    position: fixed; bottom: 80px; left: 16px; right: 16px; z-index: 500;
+    background: #1a1a1a; border: 1px solid #e8ff47;
+    padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+    animation: fadeUp 0.4s ease;
+  `;
+  banner.innerHTML = `
+    <span style="font-size:22px">📲</span>
+    <div style="flex:1">
+      <div style="font-size:13px;font-weight:700;color:#e8ff47;letter-spacing:1px">INSTALL FORGE</div>
+      <div style="font-size:11px;color:#666;margin-top:2px">Add to home screen for gym use</div>
+    </div>
+    <button onclick="installApp()" style="background:#e8ff47;border:none;color:#000;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">INSTALL</button>
+    <button onclick="document.getElementById('install-banner').remove()" style="background:transparent;border:none;color:#666;font-size:20px;cursor:pointer;padding:0 4px;line-height:1">×</button>
+  `;
+  document.body.appendChild(banner);
+}
+
+async function installApp() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  document.getElementById('install-banner')?.remove();
+}
+
+// Run on load
+window.addEventListener('load', () => {
+  setupPWA();
+  registerServiceWorker();
+});
 </script>
 </body>
 </html>
