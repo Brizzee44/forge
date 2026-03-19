@@ -764,24 +764,34 @@ function Dashboard({ state, onStartWorkout, onOpenChat, onMissedDays, onOpenSett
             const done = isCompleted(idx);
             const isRest = day.isRest;
             return (
-              <div
-                key={idx}
-                className={`day-card${isToday&&!done?' today':''}${done?' done':''}${isRest?' rest':''}`}
-                style={{cursor: isRest ? 'default' : 'pointer'}}
-                onClick={() => !isRest && onStartWorkout(idx, done)}
-              >
-                <div className="display" style={{fontSize:'26px',minWidth:'38px',color:done?'var(--green)':'var(--acc)'}}>
-                  {day.dayName.slice(0,3).toUpperCase()}
-                </div>
-                <div style={{flex:1}}>
-                  <div style={{fontWeight:600,fontSize:'14px'}}>{day.workoutName}</div>
-                  <div style={{fontSize:'12px',color:'var(--muted2)',marginTop:'2px'}}>
-                    {isRest ? 'Rest & Recovery' : `${day.focus}${day.duration?' · '+day.duration:''}`}
+              <div key={idx} style={{marginBottom:'8px'}}>
+                <div
+                  className={`day-card${isToday&&!done?' today':''}${done?' done':''}${isRest?' rest':''}`}
+                  style={{cursor:isRest?'default':'pointer',marginBottom:0}}
+                  onClick={() => !isRest && !done && onStartWorkout(idx, false)}
+                >
+                  <div className="display" style={{fontSize:'26px',minWidth:'38px',color:done?'var(--green)':'var(--acc)'}}>
+                    {day.dayName.slice(0,3).toUpperCase()}
                   </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:600,fontSize:'14px'}}>{day.workoutName}</div>
+                    <div style={{fontSize:'12px',color:'var(--muted2)',marginTop:'2px'}}>
+                      {isRest ? 'Rest & Recovery' : `${day.focus}${day.duration?' · '+day.duration:''}`}
+                    </div>
+                  </div>
+                  {done && <span className="chip chip-green">✓ DONE</span>}
+                  {!done && isToday && !isRest && <span className="chip chip-acc">TODAY</span>}
+                  {isRest && <span className="chip chip-muted">REST</span>}
                 </div>
-                {done && <span className="chip chip-green" style={{whiteSpace:'nowrap'}}>✓ DONE · EDIT</span>}
-                {!done && isToday && !isRest && <span className="chip chip-acc">TODAY</span>}
-                {isRest && <span className="chip chip-muted">REST</span>}
+                {/* Reopen button — always visible for completed workouts */}
+                {done && (
+                  <button
+                    onClick={() => onStartWorkout(idx, true)}
+                    style={{width:'100%',background:'var(--s2)',border:'1px solid var(--border2)',borderTop:'none',color:'var(--muted2)',padding:'9px 16px',fontFamily:'var(--font-body)',fontSize:'12px',fontWeight:600,letterSpacing:'1.5px',textTransform:'uppercase',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',transition:'all 0.15s'}}
+                    onMouseOver={e=>{e.currentTarget.style.borderColor='var(--acc)';e.currentTarget.style.color='var(--acc)';e.currentTarget.style.background='rgba(232,255,71,0.05)'}}
+                    onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.color='var(--muted2)';e.currentTarget.style.background='var(--s2)'}}
+                  >✏️ EDIT / REOPEN WORKOUT</button>
+                )}
               </div>
             );
           })}
@@ -1139,11 +1149,71 @@ Return ONLY JSON: {"exerciseIndex": 0, "sets": [{"weight": 135, "reps": 8}, {"we
   );
 }
 
-// HISTORY
+// HISTORY ENTRY DETAIL
+function HistoryEntryDetail({ entry }) {
+  const { loggedSets, exercises, summary, isPrior } = entry;
+
+  // Imported / prior entries — just show the summary text
+  if (isPrior || !exercises || !loggedSets) {
+    return (
+      <div style={{borderTop:'1px solid var(--border)',padding:'12px 16px',background:'var(--s2)'}}>
+        <div style={{fontSize:'13px',color:'#ccc',lineHeight:'1.7',whiteSpace:'pre-wrap'}}>{summary}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{borderTop:'1px solid var(--border)',background:'var(--s2)'}}>
+      {exercises.map((ex, ei) => {
+        const sets = loggedSets[ei] || [];
+        const logged = sets.filter(s => s.weight || s.reps || s.done);
+        return (
+          <div key={ei} style={{padding:'10px 16px',borderBottom:'1px solid var(--border)'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'6px'}}>
+              <div style={{fontWeight:600,fontSize:'13px'}}>{ex.name}</div>
+              {ex.target && (
+                <div style={{fontSize:'11px',color:'var(--green)',fontFamily:'var(--font-mono)'}}>
+                  🎯 {ex.target}
+                </div>
+              )}
+            </div>
+            {logged.length > 0 ? (
+              <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+                {logged.map((s, si) => (
+                  <div key={si} style={{
+                    background: s.done ? 'rgba(68,255,170,0.1)' : 'var(--s3)',
+                    border: `1px solid ${s.done ? 'rgba(68,255,170,0.3)' : 'var(--border2)'}`,
+                    padding:'4px 10px', fontSize:'12px', fontFamily:'var(--font-mono)',
+                    color: s.done ? 'var(--green)' : 'var(--muted2)',
+                    display:'flex', gap:'4px', alignItems:'center'
+                  }}>
+                    <span style={{color:'var(--muted)',fontSize:'10px'}}>S{si+1}</span>
+                    {s.weight ? <span>{s.weight}lbs</span> : null}
+                    {s.weight && s.reps ? <span style={{color:'var(--border2)'}}>×</span> : null}
+                    {s.reps ? <span>{s.reps} reps</span> : null}
+                    {!s.weight && !s.reps ? <span style={{color:'var(--muted)'}}>—</span> : null}
+                    {s.done && <span style={{fontSize:'10px'}}>✓</span>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{fontSize:'12px',color:'var(--muted)',fontStyle:'italic'}}>No sets logged</div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// HISTORY SCREEN
 function HistoryScreen({ history }) {
+  const [expanded, setExpanded] = useState(null);
+
   if (!history.length) return (
     <div className="screen">
       <div style={{padding:'52px 20px 16px'}}>
+        <div className="label" style={{marginBottom:'3px'}}>Your</div>
         <div className="display" style={{fontSize:'44px'}}>HISTORY</div>
       </div>
       <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:'12px',color:'var(--muted2)',padding:'40px',textAlign:'center'}}>
@@ -1153,6 +1223,9 @@ function HistoryScreen({ history }) {
     </div>
   );
 
+  const toggleExpand = (i) => setExpanded(prev => prev === i ? null : i);
+  const reversed = [...history].reverse();
+
   return (
     <div className="screen">
       <div style={{padding:'52px 20px 16px',flexShrink:0}}>
@@ -1160,16 +1233,51 @@ function HistoryScreen({ history }) {
         <div className="display" style={{fontSize:'44px'}}>HISTORY</div>
       </div>
       <div className="page" style={{padding:'0 20px'}}>
-        {[...history].reverse().map((h, i) => (
-          <div key={i} className="hist-entry">
-            <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'5px'}}>
-              <span className="label">{h.date}{h.week > 0 ? ` · Week ${h.week}` : ''}</span>
-              {h.isPrior && <span className="chip chip-acc2">IMPORTED</span>}
+        {reversed.map((h, i) => {
+          const isOpen = expanded === i;
+          const hasDetail = h.isPrior || (h.exercises?.length > 0);
+          return (
+            <div key={i} style={{background:'var(--s1)',border:'1px solid var(--border)',marginBottom:'8px',overflow:'hidden'}}>
+              {/* Header row */}
+              <div
+                style={{padding:'14px 16px',cursor: hasDetail ? 'pointer' : 'default'}}
+                onClick={() => hasDetail && toggleExpand(i)}
+              >
+                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'8px'}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'4px',flexWrap:'wrap'}}>
+                      <span className="label">{h.date}{h.week > 0 ? ` · Week ${h.week}` : ''}</span>
+                      {h.isPrior && <span className="chip chip-acc2">IMPORTED</span>}
+                    </div>
+                    <div style={{fontWeight:700,fontSize:'15px',marginBottom:'3px'}}>{h.workoutName}</div>
+                    <div style={{fontSize:'12px',color:'var(--muted2)'}}>{h.focus ? h.focus+' · ' : ''}{h.summary}</div>
+                  </div>
+                  {hasDetail && (
+                    <div style={{color:'var(--muted2)',fontSize:'14px',transition:'transform 0.2s',transform:isOpen?'rotate(180deg)':'none',flexShrink:0,marginTop:'2px'}}>▼</div>
+                  )}
+                </div>
+
+                {/* Exercise count chips */}
+                {h.exercises?.length > 0 && (
+                  <div style={{display:'flex',gap:'6px',marginTop:'8px',flexWrap:'wrap'}}>
+                    {h.exercises.map((ex, ei) => {
+                      const sets = h.loggedSets?.[ei] || [];
+                      const doneSets = sets.filter(s => s.done || s.reps || s.weight).length;
+                      return (
+                        <div key={ei} style={{fontSize:'11px',padding:'3px 8px',background:'var(--s2)',border:'1px solid var(--border2)',color: doneSets > 0 ? 'var(--muted2)' : 'var(--muted)',fontFamily:'var(--font-mono)'}}>
+                          {ex.name.length > 18 ? ex.name.slice(0,16)+'…' : ex.name} · {doneSets}/{sets.length}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Expanded detail */}
+              {isOpen && <HistoryEntryDetail entry={h}/>}
             </div>
-            <div style={{fontWeight:600,fontSize:'15px',marginBottom:'4px'}}>{h.workoutName}</div>
-            <div style={{fontSize:'12px',color:'var(--muted2)'}}>{h.focus ? h.focus+' · ' : ''}{h.summary}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -1182,6 +1290,28 @@ function ImportScreen({ profile, onImported }) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState('');
+  const [voiceActive, setVoiceActive] = useState(false);
+  const srRef = useRef(null);
+
+  const toggleVoice = async () => {
+    if (voiceActive) { srRef.current?.stop(); setVoiceActive(false); return; }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert('Voice not supported. Use Safari on iOS or Chrome on Android.'); return; }
+    try { await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch { alert('Microphone access denied. Allow mic access in browser settings.'); return; }
+    const sr = new SR();
+    sr.continuous = true; // keep listening until stopped — good for describing workouts
+    sr.interimResults = true; sr.lang = 'en-US';
+    sr.onresult = e => {
+      const transcript = Array.from(e.results).map(r => r[0].transcript).join(' ');
+      setFreeText(transcript);
+    };
+    sr.onerror = e => { console.error('SR error:', e.error); setVoiceActive(false); };
+    sr.onend = () => setVoiceActive(false);
+    srRef.current = sr;
+    try { sr.start(); setVoiceActive(true); }
+    catch(err) { alert('Could not start voice: ' + err.message); }
+  };
 
   const addSession = () => setSessions(s => [...s, { id: Date.now(), date: '', name: '', notes: '' }]);
   const updateSession = (id, key, val) => setSessions(s => s.map(x => x.id === id ? { ...x, [key]: val } : x));
@@ -1227,8 +1357,22 @@ Return ONLY a JSON array with no extra text: [{"date":"approx date e.g. 2 weeks 
       </div>
       <div className="page" style={{padding:'16px 20px 0'}}>
         {tab === 'free' && <>
-          <div style={{fontSize:'13px',color:'var(--muted2)',marginBottom:'12px',lineHeight:'1.6'}}>Describe your recent training in plain English — the AI will parse it automatically.</div>
-          <textarea className="inp" style={{minHeight:'160px',marginBottom:'14px'}} value={freeText} onChange={e=>setFreeText(e.target.value)}
+          <div style={{fontSize:'13px',color:'var(--muted2)',marginBottom:'12px',lineHeight:'1.6'}}>Describe your recent training in plain English — type it or use your voice.</div>
+
+          {/* Voice button */}
+          <button
+            onClick={toggleVoice}
+            style={{width:'100%',background:'var(--s1)',border:`1px solid ${voiceActive?'var(--red)':'var(--border2)'}`,color:voiceActive?'var(--red)':'var(--muted2)',padding:'12px',fontFamily:'var(--font-body)',fontSize:'13px',fontWeight:600,letterSpacing:'1px',textTransform:'uppercase',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginBottom:'10px',transition:'all 0.2s'}}
+          >
+            🎙️ {voiceActive ? '⏹ STOP — TAP TO FINISH' : 'DESCRIBE WITH VOICE'}
+          </button>
+          {voiceActive && (
+            <div style={{fontSize:'12px',color:'var(--acc2)',marginBottom:'8px',textAlign:'center',letterSpacing:'1px',textTransform:'uppercase'}}>
+              🔴 Listening — just talk naturally about your workouts...
+            </div>
+          )}
+
+          <textarea className="inp" style={{minHeight:'140px',marginBottom:'14px'}} value={freeText} onChange={e=>setFreeText(e.target.value)}
             placeholder="e.g. Last 2 weeks I've been doing Push/Pull/Legs 4x/week. Push: bench 3x8@185, OHP 3x10@115. Pull: pull-ups 4x8, rows 3x10@155. Legs: squat 4x6@225, RDL 3x10@185..."/>
           <button className="btn btn-acc" style={{width:'100%',marginBottom:'16px'}} disabled={loading||!freeText.trim()} onClick={importFree}>
             {loading ? 'ANALYZING...' : 'IMPORT & ANALYZE →'}
@@ -1378,7 +1522,7 @@ User: ${profile?.name}, Goal: ${profile?.goal}, Experience: ${profile?.experienc
 }
 
 // SWAP MODAL
-function SwapModal({ exercise, exIdx, profile, disliked, onSwap, onClose }) {
+function SwapModal({ exercise, exIdx, profile, disliked, currentExercises, onSwap, onClose }) {
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1391,14 +1535,39 @@ function SwapModal({ exercise, exIdx, profile, disliked, onSwap, onClose }) {
   const submit = async () => {
     if (!reason) return;
     setLoading(true);
-    const dList = disliked.map(d=>d.name).join(', ');
+
+    // Build a comprehensive exclusion list: disliked + all current exercises (except the one being swapped)
+    const dislikedNames = disliked.map(d => d.name);
+    const otherCurrentNames = currentExercises
+      .filter((_, i) => i !== exIdx)
+      .map(e => e.name);
+    const excludeAll = [...new Set([...dislikedNames, ...otherCurrentNames])];
+    const excludeStr = excludeAll.length ? excludeAll.join(', ') : 'none';
+
     try {
       const text = await callAI([{ role:'user', content:
-        `Suggest ONE exercise to replace ${exercise.name} (${exercise.sets}x${exercise.reps}, rest ${exercise.rest}) in a ${profile.goal} workout.
-Reason for swap: ${reason}. Notes: ${notes||'none'}. Equipment: ${profile.equipment}. Experience: ${profile.experience}.
-Do NOT suggest: ${dList||'none'}.
+        `Suggest ONE exercise to replace "${exercise.name}" (${exercise.sets}×${exercise.reps}, rest ${exercise.rest}).
+Workout focus: ${currentExercises.map(e=>e.name).join(', ')}.
+Reason for swap: ${reason}. Notes: ${notes||'none'}.
+Equipment: ${profile.equipment}. Goal: ${profile.goal}. Experience: ${profile.experience}.
+
+CRITICAL: Do NOT suggest any of these exercises (already in workout or previously rejected): ${excludeStr}
+The replacement MUST be a different exercise not on that list.
+
 Return ONLY JSON: {"name":"...","sets":3,"reps":"8-10","rest":"60s","notes":"coaching cue","reason":"why this is a great swap"}` }], 300);
+
       const rep = extractJSON(text);
+
+      // Client-side safety check — if AI still returned a duplicate, reject it
+      const isDuplicate = otherCurrentNames.some(n =>
+        n.toLowerCase().trim() === rep.name.toLowerCase().trim()
+      );
+      if (isDuplicate) {
+        alert(`The AI suggested "${rep.name}" but that's already in your workout. Tap "Find Replacement" again for a different suggestion.`);
+        setLoading(false);
+        return;
+      }
+
       onSwap(exIdx, rep, reason);
     } catch(err) {
       console.error('Swap error:', err);
@@ -1447,15 +1616,32 @@ function AddExerciseModal({ day, profile, disliked, onAdd, onClose }) {
 
   const suggest = async () => {
     setLoading(true); setPending(null);
-    const dList = disliked.map(d=>d.name).join(', ');
-    const existing = day.exercises.map(e=>e.name).join(', ');
+    const dislikedNames = disliked.map(d => d.name);
+    const existingNames = day.exercises.map(e => e.name);
+    const excludeAll = [...new Set([...existingNames, ...dislikedNames])];
+    const excludeStr = excludeAll.join(', ');
     try {
       const text = await callAI([{ role:'user', content:
         `Suggest ONE exercise to add to ${day.workoutName} (${day.focus}).
-Already doing: ${existing}. Equipment: ${profile.equipment}. Goal: ${profile.goal}. Experience: ${profile.experience}.
-Request: "${aiPrompt||'something complementary'}". Do NOT suggest: ${dList||'none'}.
+Equipment: ${profile.equipment}. Goal: ${profile.goal}. Experience: ${profile.experience}.
+Request: "${aiPrompt||'something complementary to round out the session'}".
+
+CRITICAL: The workout already contains these exercises — do NOT suggest any of them: ${excludeStr}
+You MUST suggest a completely different exercise not on that list.
+
 Return ONLY JSON: {"name":"...","sets":3,"reps":"10-12","rest":"60s","notes":"coaching cue","reason":"why this fits"}` }], 300);
-      setPending(extractJSON(text));
+      const result = extractJSON(text);
+
+      // Client-side duplicate check
+      const isDuplicate = existingNames.some(n =>
+        n.toLowerCase().trim() === result.name.toLowerCase().trim()
+      );
+      if (isDuplicate) {
+        alert(`The AI suggested "${result.name}" but that's already in your workout. Tap Suggest Again for a different one.`);
+        setLoading(false);
+        return;
+      }
+      setPending(result);
     } catch(err) {
       console.error('Add exercise error:', err);
       alert('Could not get suggestion: ' + err.message);
@@ -1808,7 +1994,8 @@ function App() {
       dayIndex: workoutDayIdx, week: appState.weekNum,
       workoutName: day.workoutName, focus: day.focus,
       summary, isPrior: false,
-      loggedSets: { ...workoutSets }, // save for restore on reopen
+      loggedSets: { ...workoutSets },
+      exercises: day.exercises.map(ex => ({ name: ex.name, sets: ex.sets, reps: ex.reps, target: ex.target || null })),
     };
 
     let newHistory;
@@ -1965,6 +2152,7 @@ function App() {
           exIdx={swapTarget}
           profile={appState.profile}
           disliked={appState.disliked||[]}
+          currentExercises={currentDay.exercises}
           onSwap={(ei, replacement, reason) => handleSwapConfirm(ei, replacement, currentDay.exercises[ei]?.name || '', reason)}
           onClose={() => setSwapTarget(null)}
         />
