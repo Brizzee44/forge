@@ -1719,8 +1719,9 @@ function App() {
     }
   };
 
+  const [apiKeySet, setApiKeySet] = useState(() => !!getApiKey());
+
   const hasData = !!(appState.profile && appState.weekPlan);
-  const hasApiKey = !!getApiKey();
 
   // Derive currentDay fresh from state every render so modals always see latest exercises
   const currentDay = (workoutDayIdx !== null && appState.weekPlan)
@@ -1728,8 +1729,10 @@ function App() {
     : null;
 
   // Show API key screen if no key saved yet
-  if (!hasApiKey && screen !== 'apikey') {
+  if (!apiKeySet) {
     return <ApiKeyScreen onSaved={() => {
+      setApiKeySet(true);
+      // If they already have a profile+plan, go straight to dashboard
       if (appState.profile && appState.weekPlan) setScreen('main');
     }}/>;
   }
@@ -1835,7 +1838,7 @@ function App() {
       {showSettings && (
         <SettingsModal
           currentKey={getApiKey()}
-          onSaved={() => {}}
+          onSaved={() => setApiKeySet(true)}
           onClose={() => setShowSettings(false)}
         />
       )}
