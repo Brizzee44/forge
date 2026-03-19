@@ -179,18 +179,25 @@ function buildLog(history, weekNum, plan) {
   }).join('\n\n');
 }
 
-async function genPlan(profile, weekNum, prior, lastLog) {
-  weekNum = weekNum || 1; prior = prior || ''; lastLog = lastLog || '';
+async function genPlan(profile, weekNum, prior, lastLog, oneRMs) {
+  weekNum = weekNum || 1; prior = prior || ''; lastLog = lastLog || ''; oneRMs = oneRMs || {};
   const n = pdays(profile.days), sh = SPLITS[n] || SPLITS[4];
   const sr = profile.split ? 'SPLIT REQUIRED: "' + profile.split + '" — follow exactly.' : 'Split AI chooses, suggest: ' + sh + ' for ' + n + ' days.';
   const pr = prior ? '\nPRIOR TRAINING:\n' + prior + '\n' : '';
   const lc = lastLog ? '\nLAST WEEK DATA:\n' + lastLog + '\n' : '';
   const pg = lastLog ? '\nFor each exercise with last-week data, add "target" field e.g. "4x8@190lbs(+5lbs)". ~5lb upper/~10lb lower progression.' : '';
-  const prompt = 'You are FORGE AI trainer. Create week ' + weekNum + ' plan.' + pr + lc +
+  const rmEntries = Object.keys(oneRMs).filter(function(k){ return oneRMs[k]; });
+  const rmCtx = rmEntries.length ?
+    '\nSTRENGTH BASELINE (1 Rep Maxes):\n' + rmEntries.map(function(k){ return '  ' + k + ': ' + oneRMs[k] + 'lbs'; }).join('\n') +
+    '\nUSE THESE to calculate realistic working weights for ALL exercises using standard percentage guidelines (e.g. 5x5=85%, 4x8=75%, 3x10=70%, 3x12=65%). For accessory lifts not listed, extrapolate from the closest compound lift. Always include weight in the "target" field for every exercise (e.g. "4x8@155lbs"). Do not guess — calculate from the 1RMs provided.' : '';
+  const targetRule = rmEntries.length ?
+    'IMPORTANT: Every exercise must have a "target" field with calculated weight based on the 1RM data above.' :
+    'Add "target" field where you have last-week data.';
+  const prompt = 'You are FORGE AI trainer. Create week ' + weekNum + ' plan.' + pr + lc + rmCtx +
     '\nAthlete: name=' + profile.name + ', goal=' + profile.goal + ', exp=' + profile.experience +
     ', equip=' + profile.equipment + ', notes=' + (profile.notes||'none') + '\n' + sr + pg +
-    '\nRules: 1)Exactly 7 days Mon-Sun. 2)Exactly ' + n + ' isRest:false, ' + (7-n) + ' isRest:true. 3)4-5 exercises per training day. 4)Exercises suit: ' + profile.equipment + '. 5)Each exercise: name,sets(num),reps(str),rest(str),notes(str),optional target(str). 6)Different focus each training day.' +
-    '\nReturn JSON only:\n{"weekTheme":"...","insight":"...","days":[{"dayName":"Monday","workoutName":"Push Day","focus":"Chest","duration":"50 min","isRest":false,"exercises":[{"name":"Bench Press","sets":4,"reps":"6-8","rest":"2min","notes":"full ROM","target":"4x8@190"}]},{"dayName":"Tuesday","workoutName":"Rest","focus":"Recovery","duration":"","isRest":true,"exercises":[]}]}';
+    '\nRules: 1)Exactly 7 days Mon-Sun. 2)Exactly ' + n + ' isRest:false, ' + (7-n) + ' isRest:true. 3)4-5 exercises per training day. 4)Exercises suit: ' + profile.equipment + '. 5)Each exercise: name,sets(num),reps(str),rest(str),notes(str),target(str). 6)Different focus each training day. 7)' + targetRule +
+    '\nReturn JSON only:\n{"weekTheme":"...","insight":"...","days":[{"dayName":"Monday","workoutName":"Push Day","focus":"Chest","duration":"50 min","isRest":false,"exercises":[{"name":"Bench Press","sets":4,"reps":"6-8","rest":"2min","notes":"full ROM","target":"4x8@155lbs"}]},{"dayName":"Tuesday","workoutName":"Rest","focus":"Recovery","duration":"","isRest":true,"exercises":[]}]}';
   const text = await callAI([{role:'user', content:prompt}], 4000);
   const pl = jparse(text);
   if (!pl.days || pl.days.length !== 7) throw new Error('Bad plan: ' + (pl.days && pl.days.length) + ' days');
@@ -207,6 +214,109 @@ function fallback(p) {
     {dayName:'Saturday',workoutName:'Rest',focus:'Recovery',duration:'',isRest:true,exercises:[]},
     {dayName:'Sunday',workoutName:'Rest',focus:'Recovery',duration:'',isRest:true,exercises:[]}
   ]};
+}
+
+// ── STRENGTH BASELINE SCREEN ──────────────────────────────────────────────
+// Key lifts grouped by category. User picks which ones they know and enters their 1RM.
+var BASELINE_LIFTS = [
+  {cat:'Upper Push', lifts:['Bench Press','Overhead Press','Incline Bench Press','Dumbbell Shoulder Press']},
+  {cat:'Upper Pull', lifts:['Barbell Row','Pull-Up / Lat Pulldown','Dumbbell Row','Cable Row']},
+  {cat:'Lower', lifts:['Squat','Deadlift','Romanian Deadlift','Leg Press','Hip Thrust']},
+  {cat:'Arms / Accessories', lifts:['Barbell Curl','Tricep Pushdown','Dips','Face Pull']}
+];
+
+function StrengthBaseline(props) {
+  // oneRMs: { 'Bench Press': '225', 'Squat': '', ... }
+  const [oneRMs, setOneRMs] = useState(props.existingRMs || {});
+  const [unit, setUnit] = useState('lbs');
+
+  const setRM = function(lift, val) {
+    setOneRMs(function(p){ return Object.assign({}, p, {[lift]: val}); });
+  };
+
+  const filledCount = Object.values(oneRMs).filter(function(v){ return v && v.trim(); }).length;
+
+  // Convert lbs<->kg display (stored always as lbs)
+  const toDisplay = function(lbsVal) {
+    if (!lbsVal) return '';
+    if (unit === 'kg') return String(Math.round(parseFloat(lbsVal) / 2.205));
+    return lbsVal;
+  };
+  const fromDisplay = function(dispVal) {
+    if (!dispVal || !dispVal.trim()) return '';
+    if (unit === 'kg') return String(Math.round(parseFloat(dispVal) * 2.205));
+    return dispVal;
+  };
+
+  const handleSkip = function() { props.onComplete({}); };
+  const handleContinue = function() {
+    // Only pass lifts that have a value
+    const filled = {};
+    Object.keys(oneRMs).forEach(function(k){ if (oneRMs[k] && oneRMs[k].trim()) filled[k] = oneRMs[k]; });
+    props.onComplete(filled);
+  };
+
+  return div({className:'screen'},
+    div({style:{padding:'48px 20px 0',flexShrink:0}},
+      div({className:'lbl', style:{marginBottom:'2px'}}, 'Optional'),
+      div({className:'disp', style:{fontSize:'clamp(28px,8vw,40px)',marginBottom:'8px'}}, 'STRENGTH BASELINE'),
+      div({style:{fontSize:'13px',color:'var(--muted2)',lineHeight:'1.65',marginBottom:'14px'}},
+        'Enter your 1-rep maxes for any lifts you know. The AI uses these to calculate ',
+        e('strong',{style:{color:'var(--acc)'}},'precise working weights'),
+        ' for every exercise in your plan. Skip any you\'re unsure about.'
+      ),
+      div({style:{display:'flex',gap:'8px',marginBottom:'4px'}},
+        div({style:{fontSize:'12px',color:'var(--muted2)',flex:1,alignSelf:'center'}}, filledCount > 0 ? filledCount + ' lift' + (filledCount!==1?'s':'')+' entered' : 'No lifts entered yet — all optional'),
+        div({style:{display:'flex',border:'1px solid var(--border2)',overflow:'hidden'}},
+          btn({style:{padding:'5px 12px',fontSize:'11px',fontWeight:700,letterSpacing:'1px',fontFamily:'inherit',border:'none',cursor:'pointer',background:unit==='lbs'?'var(--acc)':'transparent',color:unit==='lbs'?'#000':'var(--muted2)',transition:'all .15s'}, onClick:function(){setUnit('lbs');}}, 'LBS'),
+          btn({style:{padding:'5px 12px',fontSize:'11px',fontWeight:700,letterSpacing:'1px',fontFamily:'inherit',border:'none',cursor:'pointer',background:unit==='kg'?'var(--acc)':'transparent',color:unit==='kg'?'#000':'var(--muted2)',transition:'all .15s'}, onClick:function(){setUnit('kg');}}, 'KG')
+        )
+      )
+    ),
+    div({className:'page', style:{padding:'12px 20px 0'}},
+      BASELINE_LIFTS.map(function(group) {
+        return div({key:group.cat, style:{marginBottom:'18px'}},
+          div({className:'sh'}, group.cat),
+          group.lifts.map(function(lift) {
+            const val = oneRMs[lift] || '';
+            const dispVal = toDisplay(val);
+            const hasVal = !!(val && val.trim());
+            return div({key:lift, style:{display:'flex',alignItems:'center',gap:'10px',marginBottom:'8px',padding:'10px 12px',background:'var(--s1)',border:'1px solid '+(hasVal?'var(--acc)':'var(--border)'),transition:'border .2s'}},
+              div({style:{flex:1}},
+                div({style:{fontWeight:600,fontSize:'14px',color:hasVal?'var(--acc)':'var(--txt)'}}, lift),
+                hasVal && div({style:{fontSize:'11px',color:'var(--muted2)',marginTop:'2px'}},
+                  '~' + (unit==='lbs' ? Math.round(parseFloat(val)*0.75) + 'lbs' : Math.round(parseFloat(val)*0.75/2.205) + 'kg') + ' for 8 reps  ·  ~' +
+                  (unit==='lbs' ? Math.round(parseFloat(val)*0.85) + 'lbs' : Math.round(parseFloat(val)*0.85/2.205) + 'kg') + ' for 5 reps'
+                )
+              ),
+              div({style:{position:'relative',flexShrink:0}},
+                e('input', {
+                  type:'number',
+                  value:dispVal,
+                  placeholder:'1RM',
+                  onInput:function(ev){ setRM(lift, fromDisplay(ev.target.value)); },
+                  style:{width:'80px',background:'var(--s2)',border:'1px solid '+(hasVal?'var(--acc)':'var(--border2)'),color:'var(--txt)',padding:'8px 28px 8px 10px',fontFamily:'\'Courier New\',monospace',fontSize:'15px',outline:'none',textAlign:'center',transition:'border .2s'}
+                }),
+                span({style:{position:'absolute',right:'7px',top:'50%',transform:'translateY(-50%)',fontSize:'11px',color:'var(--muted2)',pointerEvents:'none'}}, unit)
+              )
+            );
+          })
+        );
+      }),
+      div({style:{height:'20px'}}) // bottom padding
+    ),
+    div({style:{position:'absolute',bottom:0,left:0,right:0,padding:'11px 20px 28px',background:'linear-gradient(transparent,var(--bg) 35%)',flexShrink:0}},
+      div({style:{display:'flex',gap:'9px'}},
+        btn({className:'btn bg', style:{flex:'0 0 auto',padding:'13px 16px'}, onClick:handleSkip}, 'SKIP'),
+        btn({className:'btn ba', style:{flex:1}, onClick:handleContinue},
+          filledCount > 0 ? 'USE MY ' + filledCount + ' LIFT' + (filledCount!==1?'S':'') + ' →' : 'CONTINUE WITHOUT DATA →'
+        )
+      ),
+      filledCount > 0 && div({style:{textAlign:'center',fontSize:'11px',color:'var(--green)',marginTop:'7px',letterSpacing:'1px'}},
+        '✓ AI will calculate weights from your 1RMs'
+      )
+    )
+  );
 }
 
 // ── PWA SETUP ─────────────────────────────────────────────────────────────
@@ -414,7 +524,7 @@ function Onboarding(props) {
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────
 function Dashboard(props) {
-  const {st, onW, onChat, onMissed, onSettings} = props;
+  const {st, onW, onChat, onMissed, onSettings, onUpdateRMs} = props;
   const {profile:p, weekPlan:pl, weekNum:wn, history:hist} = st;
   if (!p || !pl) return null;
   const td = tday();
@@ -457,7 +567,8 @@ function Dashboard(props) {
         div({className:'card', style:{borderLeft:'3px solid var(--acc)',fontSize:'13px',lineHeight:'1.7',color:'#ccc'}}, pl.insight)
       ),
       div({style:{padding:'0 19px 28px'}},
-        btn({className:'btn bg', style:{width:'100%'}, onClick:onMissed}, '⚠️ MISSED DAYS? TELL YOUR COACH')
+        btn({className:'btn bg', style:{width:'100%',marginBottom:'8px'}, onClick:onMissed}, '⚠️ MISSED DAYS? TELL YOUR COACH'),
+        btn({className:'btn bg', style:{width:'100%',fontSize:'12px',padding:'10px'}, onClick:onUpdateRMs}, '🏋️ UPDATE STRENGTH DATA')
       )
     ),
     btn({onClick:onChat, style:{position:'absolute',bottom:'calc(68px + var(--safe))',right:'17px',width:'48px',height:'48px',background:'var(--acc)',border:'none',borderRadius:'50%',fontSize:'20px',cursor:'pointer',boxShadow:'0 4px 16px rgba(232,255,71,.25)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50}}, '🤖')
@@ -477,7 +588,7 @@ function SRow(props) {
 
 // ── EXERCISE CARD ─────────────────────────────────────────────────────────
 function ExCard(props) {
-  const {ex, ei, sets, onU, onT, onAS, onSwap, onRm, onFb} = props;
+  const {ex, ei, sets, exCount, onU, onT, onAS, onSwap, onRm, onFb, onReorder} = props;
   const [open, setOpen] = useState(false);
   const [cRm, setCRm] = useState(false);
   const [showFb, setShowFb] = useState(false);
@@ -499,6 +610,19 @@ function ExCard(props) {
     onMouseOver:function(ev){ev.currentTarget.style.borderColor='var(--acc2)';ev.currentTarget.style.color='var(--acc2)';},
     onMouseOut:function(ev){ev.currentTarget.style.borderColor='var(--border2)';ev.currentTarget.style.color='var(--muted2)';} }, '⇄');
 
+  const reorderBtns = div({key:'ro', style:{display:'flex',flexDirection:'column',gap:'1px',marginRight:'4px',flexShrink:0}},
+    btn({onClick:function(ev){ev.stopPropagation();onReorder(ei,'up');}, disabled:ei===0,
+      style:{background:'transparent',border:'none',color:ei===0?'var(--border2)':'var(--muted2)',fontSize:'12px',cursor:ei===0?'default':'pointer',padding:'1px 3px',lineHeight:1,transition:'color .15s'},
+      onMouseOver:function(ev){if(ei>0)ev.currentTarget.style.color='var(--acc)';},
+      onMouseOut:function(ev){ev.currentTarget.style.color=ei===0?'var(--border2)':'var(--muted2)';}
+    }, '▲'),
+    btn({onClick:function(ev){ev.stopPropagation();onReorder(ei,'down');}, disabled:ei>=exCount-1,
+      style:{background:'transparent',border:'none',color:ei>=exCount-1?'var(--border2)':'var(--muted2)',fontSize:'12px',cursor:ei>=exCount-1?'default':'pointer',padding:'1px 3px',lineHeight:1,transition:'color .15s'},
+      onMouseOver:function(ev){if(ei<exCount-1)ev.currentTarget.style.color='var(--acc)';},
+      onMouseOut:function(ev){ev.currentTarget.style.color=ei>=exCount-1?'var(--border2)':'var(--muted2)';}
+    }, '▼')
+  );
+
   const rmBtn = btn({key:'rm', onClick:function(ev){ev.stopPropagation();setCRm(function(v){return !v;});}, style:{background:'transparent',border:'none',color:'var(--muted2)',fontSize:'17px',cursor:'pointer',padding:'0 2px',lineHeight:1,flexShrink:0,transition:'color .15s'},
     onMouseOver:function(ev){ev.currentTarget.style.color='var(--red)';},
     onMouseOut:function(ev){ev.currentTarget.style.color='var(--muted2)';} }, '✕');
@@ -509,7 +633,7 @@ function ExCard(props) {
         div({style:{fontWeight:700,fontSize:'14px'}}, ex.name),
         div({style:{fontSize:'12px',color:'var(--muted2)',marginTop:'2px'}}, ex.sets + ' sets × ' + ex.reps + ' · Rest ' + ex.rest)
       ),
-      swapBtn, rmBtn,
+      swapBtn, reorderBtns, rmBtn,
       div({style:{marginLeft:'5px',color:'var(--muted2)',fontSize:'13px',transform:open?'rotate(180deg)':'none',transition:'transform .2s',flexShrink:0}}, '▼')
     ),
     ex.target && div({className:'tbar'},
@@ -556,7 +680,7 @@ function ExCard(props) {
 
 // ── WORKOUT SCREEN ────────────────────────────────────────────────────────
 function WorkoutScreen(props) {
-  const {dayIdx, plan, profile, sets, isRe, onU, onT, onAS, onSwap, onRm, onAddEx, onFinish, onBack, onVL, onFb, tip, tipLoad} = props;
+  const {dayIdx, plan, profile, sets, isRe, onU, onT, onAS, onSwap, onRm, onAddEx, onFinish, onBack, onVL, onFb, onReorder, tip, tipLoad} = props;
   const day = plan.days[dayIdx], exs = day.exercises;
   const [von, setVon] = useState(false);
   const [vtxt, setVtxt] = useState('');
@@ -600,7 +724,7 @@ function WorkoutScreen(props) {
     div({className:'page', style:{paddingBottom:'75px'}},
       div({style:{padding:'10px 15px 0'}},
         isRe && div({className:'ibd'}, '✏️ ', e('strong',{}, 'Editing completed workout'), ' — make changes then Update.'),
-        exs.map(function(ex,ei){ return e(ExCard,{key:ei+'-'+ex.name,ex:ex,ei:ei,sets:sets[ei]||[],onU:onU,onT:onT,onAS:onAS,onSwap:onSwap,onRm:onRm,onFb:onFb}); }),
+        exs.map(function(ex,ei){ return e(ExCard,{key:ei+'-'+ex.name,ex:ex,ei:ei,sets:sets[ei]||[],exCount:exs.length,onU:onU,onT:onT,onAS:onAS,onSwap:onSwap,onRm:onRm,onFb:onFb,onReorder:onReorder}); }),
         btn({onClick:onAddEx, style:{width:'100%',background:'transparent',border:'1px dashed var(--acc)',color:'var(--acc)',padding:'12px',fontFamily:'inherit',fontSize:'13px',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',cursor:'pointer',marginBottom:'12px',marginTop:'3px',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',transition:'all .15s'},
           onMouseOver:function(ev){ev.currentTarget.style.background='rgba(232,255,71,.05)';},
           onMouseOut:function(ev){ev.currentTarget.style.background='transparent';}
@@ -842,7 +966,7 @@ function ChatScreen(props) {
 
 // ── SWAP MODAL ────────────────────────────────────────────────────────────
 function SwapModal(props) {
-  const {ex, ei, profile, disliked, curExs, onSwap, onClose} = props;
+  const {ex, ei, profile, disliked, curExs, oneRMs, onSwap, onClose} = props;
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
@@ -851,8 +975,10 @@ function SwapModal(props) {
   const submit = async function() {
     if (!reason) return; setLoading(true);
     const excl = (disliked||[]).map(function(d){return d.name;}).concat(curExs.filter(function(_,i){return i!==ei;}).map(function(ex2){return ex2.name;}));
+    const rmEntries = Object.keys(oneRMs||{}).filter(function(k){return oneRMs[k];});
+    const rmCtx = rmEntries.length ? ' 1RMs: '+rmEntries.map(function(k){return k+'='+oneRMs[k]+'lbs';}).join(', ')+'. Use these to calculate "target" field (e.g. "3x12@135lbs"). ' : ' Include a realistic "target" field based on goal/experience. ';
     try {
-      const txt = await callAI([{role:'user',content:'Replace "'+ex.name+'" ('+ex.sets+'x'+ex.reps+'). Reason: '+reason+'. Notes: '+(notes||'none')+'. Equip: '+profile.equipment+'. Goal: '+profile.goal+'. DO NOT suggest: '+(excl.join(', ')||'none')+'. JSON: {"name":"...","sets":3,"reps":"8-10","rest":"60s","notes":"cue","reason":"why"}'}], 300);
+      const txt = await callAI([{role:'user',content:'Replace "'+ex.name+'" ('+ex.sets+'x'+ex.reps+'). Reason: '+reason+'. Notes: '+(notes||'none')+'. Equip: '+profile.equipment+'. Goal: '+profile.goal+'. Exp: '+profile.experience+'.'+rmCtx+'DO NOT suggest: '+(excl.join(', ')||'none')+'. JSON: {"name":"...","sets":3,"reps":"8-10","rest":"60s","notes":"cue","target":"3x10@135lbs","reason":"why"}'}], 350);
       const res = jparse(txt);
       if (curExs.filter(function(_,i){return i!==ei;}).some(function(ex2){return ex2.name.toLowerCase()===res.name.toLowerCase();})) {
         alert('"'+res.name+'" is already in your workout. Try again.'); setLoading(false); return;
@@ -881,18 +1007,20 @@ function SwapModal(props) {
 
 // ── ADD EXERCISE MODAL ────────────────────────────────────────────────────
 function AddExModal(props) {
-  const {day, profile, disliked, onAdd, onClose} = props;
+  const {day, profile, disliked, oneRMs, onAdd, onClose} = props;
   const [mode, setMode] = useState('ai');
   const [p2, setP2] = useState('');
   const [pending, setPending] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [nm, setNm] = useState(''), [s2, setS2] = useState('3'), [r2, setR2] = useState('10-12'), [rs2, setRs2] = useState('60s');
+  const [nm, setNm] = useState(''), [s2, setS2] = useState('3'), [r2, setR2] = useState('10-12'), [rs2, setRs2] = useState('60s'), [tgt, setTgt] = useState('');
 
   const suggest = async function() {
     setLoading(true); setPending(null);
     const excl = day.exercises.map(function(ex){return ex.name;}).concat((disliked||[]).map(function(d){return d.name;}));
+    const rmEntries = Object.keys(oneRMs||{}).filter(function(k){return oneRMs[k];});
+    const rmCtx = rmEntries.length ? ' 1RMs: '+rmEntries.map(function(k){return k+'='+oneRMs[k]+'lbs';}).join(', ')+'. Use to calculate "target" field (e.g. "3x12@135lbs"). ' : ' Include a realistic "target" field based on goal/experience. ';
     try {
-      const txt = await callAI([{role:'user',content:'Add exercise to '+day.workoutName+'('+day.focus+'). Equip:'+profile.equipment+'. Goal:'+profile.goal+'. Request:"'+(p2||'complementary')+'". DO NOT suggest: '+(excl.join(', ')||'none')+'. JSON: {"name":"...","sets":3,"reps":"10-12","rest":"60s","notes":"cue","reason":"why"}'}], 300);
+      const txt = await callAI([{role:'user',content:'Add exercise to '+day.workoutName+'('+day.focus+'). Equip:'+profile.equipment+'. Goal:'+profile.goal+'. Exp:'+profile.experience+'. Request:"'+(p2||'complementary')+'".'+rmCtx+'DO NOT suggest: '+(excl.join(', ')||'none')+'. JSON: {"name":"...","sets":3,"reps":"10-12","rest":"60s","notes":"cue","target":"3x12@135lbs","reason":"why"}'}], 350);
       const res = jparse(txt);
       if (day.exercises.some(function(ex){return ex.name.toLowerCase()===res.name.toLowerCase();})) {
         alert('"'+res.name+'" already in your workout. Tap Suggest Again.'); setLoading(false); return;
@@ -904,7 +1032,7 @@ function AddExModal(props) {
 
   const confirm = function() {
     if (mode==='ai' && pending) onAdd(pending);
-    else if (mode==='custom' && nm.trim()) onAdd({name:nm.trim(),sets:parseInt(s2)||3,reps:r2||'10-12',rest:rs2||'60s',notes:'Added manually',reason:''});
+    else if (mode==='custom' && nm.trim()) onAdd({name:nm.trim(),sets:parseInt(s2)||3,reps:r2||'10-12',rest:rs2||'60s',notes:'Added manually',target:tgt.trim()||null,reason:''});
   };
 
   return div({className:'mb', onClick:function(ev){if(ev.target===ev.currentTarget)onClose();}},
@@ -926,11 +1054,12 @@ function AddExModal(props) {
       ),
       mode==='custom' && div({},
         div({style:{marginBottom:'9px'}}, div({className:'lbl',style:{marginBottom:'5px'}},'Exercise name'), e('input',{className:'inp',value:nm,onInput:function(ev){setNm(ev.target.value);},placeholder:'e.g. Cable Fly…',style:{padding:'10px 12px'}})),
-        div({style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'6px',marginBottom:'11px'}},
+        div({style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'6px',marginBottom:'8px'}},
           [['Sets',s2,setS2,'number'],['Reps',r2,setR2,'text'],['Rest',rs2,setRs2,'text']].map(function(x){
             return div({key:x[0]}, div({className:'lbl',style:{marginBottom:'4px'}},x[0]), e('input',{className:'inp',type:x[3],value:x[1],onInput:function(ev){x[2](ev.target.value);},style:{padding:'7px 8px',textAlign:'center'}}));
           })
-        )
+        ),
+        div({style:{marginBottom:'11px'}}, div({className:'lbl',style:{marginBottom:'5px'}},'Target weight (optional)'), e('input',{className:'inp',value:tgt,onInput:function(ev){setTgt(ev.target.value);},placeholder:'e.g. 3x12@135lbs',style:{padding:'10px 12px'}}))
       ),
       div({style:{display:'flex',gap:'8px',marginTop:'3px'}},
         btn({className:'btn bg',style:{flex:1},onClick:onClose}, 'CANCEL'),
@@ -945,16 +1074,21 @@ function MissedModal(props) {
   const {profile, plan, weekNum, history, onAdapted, onClose} = props;
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
 
   const submit = async function() {
-    if (!reason.trim()) return; setLoading(true);
-    const completed = history.filter(function(h){return h.week===weekNum;}).map(function(h){return h.workoutName;}).join(', ');
-    const remaining = plan.days.filter(function(d,i){return !d.isRest&&!history.some(function(h){return h.dayIndex===i&&h.week===weekNum;});}).map(function(d){return d.workoutName;}).join(', ');
+    if (!reason.trim()) return;
+    setLoading(true); setErr('');
+    const completed = history.filter(function(h){return h.week===weekNum;}).map(function(h){return h.workoutName;}).join(', ') || 'none';
+    const remaining = plan.days.filter(function(d,i){return !d.isRest&&!history.some(function(h){return h.dayIndex===i&&h.week===weekNum;});}).map(function(d){return d.workoutName;}).join(', ') || 'none';
+    const prompt = 'Athlete missed training days. Adapt their week plan.\nProfile: '+profile.name+', Goal: '+profile.goal+', Equipment: '+profile.equipment+'.\nCurrent week theme: '+plan.weekTheme+'.\nCompleted this week: '+completed+'.\nRemaining sessions: '+remaining+'.\nReason for missed days: "'+reason+'".\n\nReturn a complete updated 7-day plan. Redistribute or consolidate the remaining sessions to fit the rest of the week. Keep the same JSON schema exactly:\n{"weekTheme":"...","insight":"...","days":[{"dayName":"Monday","workoutName":"...","focus":"...","duration":"...","isRest":false,"exercises":[{"name":"...","sets":4,"reps":"6-8","rest":"2min","notes":"...","target":"..."}]},{"dayName":"Tuesday","workoutName":"Rest","focus":"Recovery","duration":"","isRest":true,"exercises":[]}]}\nReturn JSON only. Array must have exactly 7 days.';
     try {
-      const txt = await callAI([{role:'user',content:'Athlete missed training. Profile:'+profile.name+','+profile.goal+','+profile.equipment+'. Week:'+plan.weekTheme+'. Completed:'+completed+'. Remaining:'+remaining+'. Reason:"'+reason+'". Return updated 7-day plan. JSON only (same schema as original).'}], 3000);
-      const updated = jparse(txt);
-      if (updated.days && updated.days.length===7) onAdapted(updated); else onClose();
-    } catch(e2) { onClose(); }
+      const txt = await callAI([{role:'user',content:prompt}], 3500);
+      let updated;
+      try { updated = jparse(txt); } catch(pe) { throw new Error('Could not parse AI response. Try again.'); }
+      if (!updated.days || updated.days.length !== 7) throw new Error('AI returned ' + (updated.days&&updated.days.length) + ' days instead of 7. Try again.');
+      onAdapted(updated);
+    } catch(e2) { setErr(e2.message); }
     setLoading(false);
   };
 
@@ -962,7 +1096,11 @@ function MissedModal(props) {
     div({className:'ms'},
       div({className:'disp',style:{fontSize:'22px',marginBottom:'3px'}}, 'MISSED DAYS?'),
       div({style:{fontSize:'13px',color:'var(--muted2)',marginBottom:'13px',lineHeight:'1.5'}}, "Tell me what happened — I'll adapt your remaining week."),
-      e('textarea',{className:'inp',style:{minHeight:'85px',marginBottom:'12px'},value:reason,onInput:function(ev){setReason(ev.target.value);},placeholder:'e.g. Got sick Monday and Tuesday, feeling better now…'}),
+      e('textarea',{className:'inp',style:{minHeight:'85px',marginBottom:'8px'},value:reason,onInput:function(ev){setReason(ev.target.value);setErr('');},placeholder:'e.g. Missed Tuesday and Wednesday — work got busy. Feeling good now, ready to go Thursday.'}),
+      err && div({style:{background:'rgba(255,68,85,.08)',border:'1px solid var(--red)',padding:'9px 12px',fontSize:'13px',color:'#ff8888',marginBottom:'8px',lineHeight:'1.5'}},
+        '⚠️ ', err,
+        div({style:{fontSize:'11px',color:'var(--muted2)',marginTop:'4px'}}, 'Tip: Be specific about which days were missed and what you\'d like to do instead.')
+      ),
       div({style:{display:'flex',gap:'8px'}},
         btn({className:'btn bg',style:{flex:1},onClick:onClose}, 'CANCEL'),
         btn({className:'btn ba',style:{flex:2},disabled:!reason.trim()||loading,onClick:submit}, loading?'ADAPTING…':'ADAPT MY PLAN →')
@@ -973,7 +1111,7 @@ function MissedModal(props) {
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────
 function App() {
-  const [st, setSt] = useLS(STORE, {profile:null,weekPlan:null,weekNum:1,history:[],priorSummary:'',disliked:[]});
+  const [st, setSt] = useLS(STORE, {profile:null,weekPlan:null,weekNum:1,history:[],priorSummary:'',disliked:[],oneRMs:{}});
   const [screen, setScreen] = useState('splash');
   const [tab, setTab] = useState('dashboard');
   const [genMsg, setGenMsg] = useState('Building your plan…');
@@ -990,6 +1128,7 @@ function App() {
   const [tip, setTip] = useState('');
   const [tipLoad, setTipLoad] = useState(false);
   const [inst, setInst] = useState(null);
+  const pendingProfileRef = useRef(null);
 
   useEffect(function() {
     const k = localStorage.getItem('forge_key'); if (k) _key = k;
@@ -1000,11 +1139,33 @@ function App() {
   const upd = function(patch) { setSt(function(s){ return Object.assign({}, s, patch); }); };
   const toast$ = function(msg) { setToast(msg); };
 
-  const onBoard = async function(profile) {
-    upd({profile:profile}); setScreen('generating'); setGenMsg('Building your personalized plan…');
-    try { const plan = await genPlan(profile, 1, st.priorSummary, ''); upd({weekPlan:plan,weekNum:1}); }
-    catch(e2) { console.error(e2); upd({weekPlan:fallback(profile),weekNum:1}); }
-    setScreen('main');
+  // After onboarding, go to strength baseline screen
+  const onBoard = function(profile) {
+    pendingProfileRef.current = profile;
+    upd({profile:profile});
+    setScreen('baseline');
+  };
+
+  // After baseline (called with filled 1RMs or empty obj if skipped)
+  const onBaselineComplete = async function(oneRMs) {
+    const profile = pendingProfileRef.current || st.profile;
+    const isUpdate = !!(st.weekPlan); // already has a plan = updating, not first time
+    upd({oneRMs: oneRMs});
+    if (isUpdate) {
+      // Regenerate current week plan with new 1RM data
+      setScreen('generating');
+      setGenMsg('Recalculating weights from updated 1RMs…');
+      try { const plan = await genPlan(profile, st.weekNum, st.priorSummary, buildLog(st.history, st.weekNum, st.weekPlan), oneRMs); upd({weekPlan:plan}); }
+      catch(e2) { console.error(e2); }
+      setScreen('main'); setTab('dashboard');
+      toast$('Weights updated from your 1RMs! 💪');
+    } else {
+      setScreen('generating');
+      setGenMsg(Object.keys(oneRMs).length > 0 ? 'Calculating weights from your 1RMs…' : 'Building your personalized plan…');
+      try { const plan = await genPlan(profile, 1, st.priorSummary, '', oneRMs); upd({weekPlan:plan,weekNum:1}); }
+      catch(e2) { console.error(e2); upd({weekPlan:fallback(profile),weekNum:1}); }
+      setScreen('main');
+    }
   };
 
   const startW = async function(idx, re) {
@@ -1047,7 +1208,24 @@ function App() {
     setWSets(function(p){ const n=Object.assign({},p); n[Object.keys(p).length]=Array.from({length:ex.sets},function(){return {weight:'',reps:'',done:false};}); return n; });
     setShowAddEx(false); setTip('Added '+ex.name+'! '+(ex.reason||'Great addition.')); toast$('Added '+ex.name);
   }, []);
-  const onVL = useCallback(function(ei, ps) {
+  const onReorder = useCallback(function(ei, dir) {
+    const idx = wIdxRef.current;
+    setSt(function(p) {
+      const pl = JSON.parse(JSON.stringify(p.weekPlan));
+      const exs = pl.days[idx].exercises;
+      const newEi = dir === 'up' ? ei - 1 : ei + 1;
+      if (newEi < 0 || newEi >= exs.length) return p;
+      const tmp = exs[ei]; exs[ei] = exs[newEi]; exs[newEi] = tmp;
+      return Object.assign({}, p, {weekPlan: pl});
+    });
+    setWSets(function(p) {
+      const newEi = dir === 'up' ? ei - 1 : ei + 1;
+      if (newEi < 0) return p;
+      const n = Object.assign({}, p);
+      const tmp = n[ei]; n[ei] = n[newEi]; n[newEi] = tmp;
+      return n;
+    });
+  }, []);
     ps.forEach(function(s, si) {
       setWSets(function(p){ const n=Object.assign({},p); const cur=(n[ei]||[]).slice(); if(si<cur.length) cur[si]=Object.assign({},cur[si],{weight:s.weight!=null?String(s.weight):cur[si].weight,reps:s.reps!=null?String(s.reps):cur[si].reps,done:true}); else cur.push({weight:s.weight!=null?String(s.weight):'',reps:s.reps!=null?String(s.reps):'',done:true}); n[ei]=cur; return n; });
     });
@@ -1068,7 +1246,7 @@ function App() {
     if (!isRe && dtw >= wDays.length) {
       upd({history:nh}); const nw = st.weekNum + 1; setGenMsg('Week complete! Building Week '+nw+'…'); setScreen('generating');
       const lastLog = buildLog(nh, st.weekNum, st.weekPlan);
-      try { const plan = await genPlan(st.profile, nw, st.priorSummary, lastLog); upd({weekPlan:plan,weekNum:nw,history:nh}); }
+      try { const plan = await genPlan(st.profile, nw, st.priorSummary, lastLog, st.oneRMs||{}); upd({weekPlan:plan,weekNum:nw,history:nh}); }
       catch(e2) { upd({weekPlan:fallback(st.profile),weekNum:nw,history:nh}); }
       setScreen('main');
     } else { upd({history:nh}); toast$(isRe?'Workout updated! 💪':'Workout logged! 💪'); }
@@ -1086,9 +1264,10 @@ function App() {
   return div({style:{position:'relative',width:'100%',height:'100%',overflow:'hidden'}},
     screen==='splash' && e(Splash, {hasData:hasData, onStart:onSplash, onSettings:function(){setShowSettings(true);}}),
     screen==='onboard' && e(Onboarding, {onComplete:onBoard}),
+    screen==='baseline' && e(StrengthBaseline, {onComplete:onBaselineComplete, existingRMs:st.oneRMs||{}}),
     screen==='generating' && e(Loading, {msg:genMsg}),
     screen==='main' && !showChat && div({style:{position:'relative',width:'100%',height:'100%'}},
-      tab==='dashboard' && e(Dashboard, {st:st, onW:startW, onChat:function(){setShowChat(true);}, onMissed:function(){setShowMissed(true);}, onSettings:function(){setShowSettings(true);}}),
+      tab==='dashboard' && e(Dashboard, {st:st, onW:startW, onChat:function(){setShowChat(true);}, onMissed:function(){setShowMissed(true);}, onSettings:function(){setShowSettings(true);}, onUpdateRMs:function(){pendingProfileRef.current=st.profile;setScreen('baseline');}}),
       tab==='history' && e(HistoryScreen, {history:st.history}),
       tab==='import' && e(ImportScreen, {profile:st.profile, onImported:function(ents, sum){ upd({history:st.history.concat(ents), priorSummary:(st.priorSummary?st.priorSummary+'\n':'')+sum}); setTab('dashboard'); toast$(ents.length+' sessions imported!'); }}),
       e('nav', {className:'nav'},
@@ -1100,12 +1279,12 @@ function App() {
         btn({className:'nb', onClick:function(){setShowChat(true);}}, span({className:'ni'},'🤖'), span({className:'nl'},'Coach'))
       )
     ),
-    screen==='workout' && wIdx!==null && e(WorkoutScreen, {dayIdx:wIdx,plan:st.weekPlan,profile:st.profile,sets:wSets,isRe:isRe,onU:onU,onT:onT,onAS:onAS,onSwap:function(ei){setShowSwap(ei);},onRm:onRm,onAddEx:function(){setShowAddEx(true);},onFinish:finish,onBack:function(){setScreen('main');setTab('dashboard');},onVL:onVL,onFb:onFb,tip:tip,tipLoad:tipLoad}),
+    screen==='workout' && wIdx!==null && e(WorkoutScreen, {dayIdx:wIdx,plan:st.weekPlan,profile:st.profile,sets:wSets,isRe:isRe,onU:onU,onT:onT,onAS:onAS,onSwap:function(ei){setShowSwap(ei);},onRm:onRm,onAddEx:function(){setShowAddEx(true);},onFinish:finish,onBack:function(){setScreen('main');setTab('dashboard');},onVL:onVL,onFb:onFb,onReorder:onReorder,tip:tip,tipLoad:tipLoad}),
     showChat && e(ChatScreen, {profile:st.profile,plan:st.weekPlan,weekNum:st.weekNum,history:st.history,onClose:function(){setShowChat(false);}}),
     showSettings && e(Settings, {onClose:function(){setShowSettings(false);}, onSaved:function(){}}),
     showMissed && e(MissedModal, {profile:st.profile,plan:st.weekPlan,weekNum:st.weekNum,history:st.history,onAdapted:function(plan){upd({weekPlan:plan});setShowMissed(false);toast$('Plan adapted!');},onClose:function(){setShowMissed(false);}}),
-    showSwap !== null && curDay && curDay.exercises[showSwap] && e(SwapModal, {ex:curDay.exercises[showSwap],ei:showSwap,profile:st.profile,disliked:st.disliked||[],curExs:curDay.exercises,onSwap:onSwapC,onClose:function(){setShowSwap(null);}}),
-    showAddEx && curDay && e(AddExModal, {day:curDay,profile:st.profile,disliked:st.disliked||[],onAdd:onAddExC,onClose:function(){setShowAddEx(false);}}),
+    showSwap !== null && curDay && curDay.exercises[showSwap] && e(SwapModal, {ex:curDay.exercises[showSwap],ei:showSwap,profile:st.profile,disliked:st.disliked||[],curExs:curDay.exercises,oneRMs:st.oneRMs||{},onSwap:onSwapC,onClose:function(){setShowSwap(null);}}),
+    showAddEx && curDay && e(AddExModal, {day:curDay,profile:st.profile,disliked:st.disliked||[],oneRMs:st.oneRMs||{},onAdd:onAddExC,onClose:function(){setShowAddEx(false);}}),
     inst && div({style:{position:'fixed',bottom:'calc(64px + var(--safe))',left:'9px',right:'9px',background:'var(--s2)',border:'1px solid var(--acc)',padding:'10px 12px',display:'flex',alignItems:'center',gap:'9px',zIndex:150}},
       span({style:{fontSize:'19px'}}, '📲'),
       div({style:{flex:1}},
