@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
@@ -10,2321 +10,1119 @@
 <meta name="theme-color" content="#080808"/>
 <link rel="manifest" id="pwa-manifest"/>
 <link rel="apple-touch-icon" id="apple-icon"/>
-<title>FORGE</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<title>FORGE — AI Trainer</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body,#root{height:100%;width:100%;overflow:hidden}
-body{background:#080808;color:#f0f0f0;font-family:'DM Sans',sans-serif;overscroll-behavior:none}
-:root{
-  --bg:#080808;--s1:#111;--s2:#181818;--s3:#222;
-  --border:#2a2a2a;--border2:#333;
-  --acc:#e8ff47;--acc2:#ff6b35;--acc3:#47ffb2;
-  --txt:#f0f0f0;--muted:#555;--muted2:#777;
-  --red:#ff4455;--green:#44ffaa;
-  --font-display:'Bebas Neue',sans-serif;
-  --font-body:'DM Sans',sans-serif;
-  --font-mono:'DM Mono',monospace;
-  --r:0px;
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-}
-/* scrollable areas */
-.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch}
-.scroll::-webkit-scrollbar{width:3px}
-.scroll::-webkit-scrollbar-track{background:transparent}
-.scroll::-webkit-scrollbar-thumb{background:var(--border2)}
-
-/* typography */
-.display{font-family:var(--font-display);letter-spacing:3px;line-height:1}
-.mono{font-family:var(--font-mono)}
-.label{font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted2)}
-.label-acc{font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--acc)}
-
-/* layout */
+body{background:#080808;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-serif;overscroll-behavior:none}
+:root{--bg:#080808;--s1:#111;--s2:#181818;--border:#2a2a2a;--border2:#383838;--acc:#e8ff47;--acc2:#ff6b35;--green:#44ffaa;--red:#ff4455;--txt:#f0f0f0;--muted:#555;--muted2:#777;--safe:env(safe-area-inset-bottom,0px)}
 .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg)}
-.page{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(72px + var(--safe-bottom))}
-.page::-webkit-scrollbar{display:none}
-
-/* bottom nav */
-.nav{
-  position:absolute;bottom:0;left:0;right:0;
-  height:calc(60px + var(--safe-bottom));
-  padding-bottom:var(--safe-bottom);
-  background:var(--s1);border-top:1px solid var(--border);
-  display:flex;z-index:100;
-}
-.nav-item{
-  flex:1;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:3px;background:none;border:none;
-  cursor:pointer;padding:8px 4px;transition:all 0.15s;
-}
-.nav-item .ni{font-size:19px;transition:transform 0.15s}
-.nav-item .nl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
-.nav-item.active .nl{color:var(--acc)}
-.nav-item.active .ni{transform:scale(1.15)}
-.nav-item:active .ni{transform:scale(0.9)}
-
-/* buttons */
-.btn{
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  font-family:var(--font-body);font-weight:700;font-size:13px;
-  letter-spacing:2px;text-transform:uppercase;border:none;cursor:pointer;
-  transition:all 0.15s;padding:15px 20px;
-}
-.btn:active{transform:scale(0.97)}
-.btn-acc{background:var(--acc);color:#000}
-.btn-acc:hover{background:#fff}
-.btn-acc2{background:var(--acc2);color:#fff}
-.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--muted2)}
-.btn-ghost:hover{border-color:var(--acc);color:var(--acc)}
-.btn-danger{background:transparent;border:1px solid var(--red);color:var(--red)}
-.btn:disabled{background:var(--border)!important;color:var(--muted)!important;cursor:not-allowed;transform:none!important}
-
-/* inputs */
-.inp{
-  width:100%;background:var(--s2);border:1px solid var(--border);
-  color:var(--txt);padding:13px 15px;font-family:var(--font-body);
-  font-size:15px;outline:none;transition:border 0.2s;
-}
-.inp:focus{border-color:var(--acc)}
-.inp::placeholder{color:var(--muted)}
-textarea.inp{resize:none;min-height:90px;line-height:1.6}
-
-/* cards */
-.card{background:var(--s1);border:1px solid var(--border);padding:16px}
-.card-acc{border-left:3px solid var(--acc)}
-.card-acc2{border-left:3px solid var(--acc2)}
-.card-green{border-left:3px solid var(--green)}
-
-/* divider */
-.divider{height:1px;background:var(--border);margin:0}
-
-/* modal backdrop */
-.modal-bg{
-  position:fixed;inset:0;z-index:200;
-  background:rgba(0,0,0,0.88);
-  display:flex;align-items:flex-end;justify-content:center;
-}
-.modal-sheet{
-  background:var(--s1);border-top:1px solid var(--border2);
-  width:100%;max-width:640px;
-  padding:28px 22px calc(32px + var(--safe-bottom));
-  max-height:88vh;overflow-y:auto;
-}
-.modal-sheet::-webkit-scrollbar{display:none}
-
-/* chips / badges */
-.chip{
-  display:inline-flex;align-items:center;gap:4px;
-  padding:3px 9px;font-size:10px;font-weight:700;
-  letter-spacing:1.5px;text-transform:uppercase;border:1px solid;
-}
-.chip-acc{color:var(--acc);border-color:var(--acc)}
-.chip-acc2{color:var(--acc2);border-color:var(--acc2)}
-.chip-green{color:var(--green);border-color:var(--green)}
-.chip-muted{color:var(--muted2);border-color:var(--border2)}
-
-/* step dots */
-.dots{display:flex;gap:5px;margin-bottom:28px}
-.dot{height:3px;flex:1;background:var(--border);transition:background 0.3s}
-.dot.done{background:var(--acc)}
-
-/* choice grid */
-.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
-.cspan{grid-column:1/-1}
-.cbtn{
-  background:var(--s1);border:1px solid var(--border2);color:var(--txt);
-  padding:16px 12px;font-family:var(--font-body);font-size:13px;font-weight:500;
-  cursor:pointer;transition:all 0.15s;text-align:center;line-height:1.4;
-}
-.cbtn:hover{border-color:var(--acc);color:var(--acc)}
-.cbtn.sel{border-color:var(--acc);background:rgba(232,255,71,0.07);color:var(--acc)}
-.cbtn .ci{font-size:20px;display:block;margin-bottom:5px}
-
-/* exercise card */
-.ex-card{background:var(--s1);border:1px solid var(--border);margin-bottom:8px;overflow:hidden}
-.ex-header{
-  padding:13px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;
-  user-select:none;
-}
-.ex-header:active{background:var(--s2)}
-.ex-body{border-top:1px solid var(--border);padding:14px}
-.set-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.set-inp{
-  flex:1;background:var(--bg);border:1px solid var(--border);
-  color:var(--txt);padding:9px 6px;font-family:var(--font-mono);
-  font-size:14px;outline:none;text-align:center;transition:border 0.2s;
-}
-.set-inp:focus{border-color:var(--acc)}
-.set-done-btn{
-  width:30px;height:30px;border:1px solid var(--border2);background:transparent;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  font-size:13px;color:var(--muted2);transition:all 0.15s;flex-shrink:0;
-}
-.set-done-btn.done{background:var(--green);border-color:var(--green);color:#000}
-
-/* time bar */
-.time-bar{
-  background:var(--s2);border-bottom:1px solid var(--border);
-  padding:9px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
-}
-.tc{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted2)}
-.tc .tv{font-family:var(--font-mono);font-size:13px;color:var(--acc);font-weight:500}
-.tc.over .tv{color:var(--acc2)}
-
-/* spinner */
-.spin{
-  width:44px;height:44px;border:2px solid var(--border2);
-  border-top-color:var(--acc);border-radius:50%;
-  animation:rotating 0.7s linear infinite;
-}
-@keyframes rotating{to{transform:rotate(360deg)}}
-
-/* thinking dots */
-.thinking{display:flex;gap:5px;align-items:center;padding:12px 14px}
-.td{width:6px;height:6px;background:var(--muted);border-radius:50%;animation:bounce 1.1s infinite}
-.td:nth-child(2){animation-delay:.18s}
-.td:nth-child(3){animation-delay:.36s}
-@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
-
-/* chat */
-.msg{max-width:86%;padding:11px 14px;font-size:14px;line-height:1.65}
-.msg.user{align-self:flex-end;background:var(--acc);color:#000;font-weight:500}
-.msg.ai{align-self:flex-start;background:var(--s2);border:1px solid var(--border)}
-.msg.ai strong{color:var(--acc)}
-.msg.ai ul{padding-left:16px;margin:5px 0}
-.msg.ai li{margin-bottom:3px}
-
-/* history */
-.hist-entry{background:var(--s1);border:1px solid var(--border);padding:14px 16px;margin-bottom:8px}
-
-/* toast */
-.toast{
-  position:fixed;top:20px;left:50%;transform:translateX(-50%);
-  background:var(--s2);border:1px solid var(--acc);
-  color:var(--acc);padding:10px 20px;font-size:13px;font-weight:600;
-  letter-spacing:1px;text-transform:uppercase;z-index:999;
-  animation:fadeUp 0.3s ease;white-space:nowrap;
-}
-@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-
-/* install banner */
-.install-banner{
-  position:fixed;bottom:calc(68px + var(--safe-bottom));left:12px;right:12px;
-  background:var(--s2);border:1px solid var(--acc);
-  padding:12px 14px;display:flex;align-items:center;gap:10px;z-index:150;
-  animation:fadeUp 0.3s ease;
-}
-
-/* section header */
-.sec-hdr{
-  display:flex;align-items:center;gap:8px;margin-bottom:12px;
-}
-.sec-hdr::after{content:'';flex:1;height:1px;background:var(--border)}
-
-/* day card */
-.day-card{
-  background:var(--s1);border:1px solid var(--border);
-  padding:14px 16px;display:flex;align-items:center;gap:12px;
-  cursor:pointer;transition:all 0.15s;margin-bottom:8px;
-}
-.day-card:hover,.day-card:active{border-color:var(--acc)}
-.day-card.today{border-color:var(--acc);background:rgba(232,255,71,0.04)}
-.day-card.done{border-color:var(--green);opacity:0.65;cursor:default}
-.day-card.rest{cursor:default;opacity:0.5}
-
-/* swap / add mode tabs */
-.mtabs{display:flex;border:1px solid var(--border2);margin-bottom:16px}
-.mtab{
-  flex:1;padding:11px 8px;background:transparent;border:none;
-  color:var(--muted2);font-family:var(--font-body);font-size:12px;
-  font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;
-}
-.mtab.active{background:rgba(232,255,71,0.08);color:var(--acc)}
-
-/* prior session */
-.pscard{background:var(--s1);border:1px solid var(--border);margin-bottom:8px;overflow:hidden}
-.pshdr{padding:12px 14px;display:flex;align-items:center;cursor:pointer}
-.psbody{border-top:1px solid var(--border);padding:14px;display:none}
-.psbody.open{display:block}
-
-/* remove confirm inline */
-.rm-confirm{
-  background:rgba(255,68,85,0.08);border-top:1px solid var(--red);
-  padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;
-}
+.page{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}.page::-webkit-scrollbar{display:none}
+.nav{position:absolute;bottom:0;left:0;right:0;height:calc(56px + var(--safe));padding-bottom:var(--safe);background:var(--s1);border-top:1px solid var(--border);display:flex;z-index:100}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;cursor:pointer;padding:5px 2px}
+.nb .ni{font-size:18px}.nb .nl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}.nb.on .nl{color:var(--acc)}
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;font-family:inherit;font-weight:700;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;border:none;cursor:pointer;transition:all .15s;padding:13px 18px}
+.btn:active{transform:scale(.97)}.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+.ba{background:var(--acc);color:#000}.ba:hover{background:#fff}
+.ba2{background:var(--acc2);color:#fff}
+.bg{background:transparent;border:1px solid var(--border2);color:var(--muted2)}.bg:hover{border-color:var(--acc);color:var(--acc)}
+.inp{width:100%;background:var(--s2);border:1px solid var(--border);color:var(--txt);padding:12px 14px;font-family:inherit;font-size:15px;outline:none;transition:border .2s}
+.inp:focus{border-color:var(--acc)}.inp::placeholder{color:var(--muted)}
+textarea.inp{resize:none;min-height:80px;line-height:1.6}
+.card{background:var(--s1);border:1px solid var(--border);padding:13px}
+.chip{display:inline-flex;align-items:center;padding:3px 8px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:1px solid}
+.ca{color:var(--acc);border-color:var(--acc)}.cg{color:var(--green);border-color:var(--green)}.ca2{color:var(--acc2);border-color:var(--acc2)}.cm{color:var(--muted2);border-color:var(--border2)}
+.lbl{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted2)}
+.mb{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.88);display:flex;align-items:flex-end;justify-content:center}
+.ms{background:var(--s1);border-top:1px solid var(--border2);width:100%;max-width:640px;padding:24px 19px calc(30px + var(--safe));max-height:88vh;overflow-y:auto}.ms::-webkit-scrollbar{display:none}
+.sh{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted2)}.sh::after{content:'';flex:1;height:1px;background:var(--border)}
+.ec{background:var(--s1);border:1px solid var(--border);margin-bottom:8px;overflow:hidden}
+.eh{padding:11px 13px;display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}.eh:active{background:var(--s2)}
+.sr{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.si{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--txt);padding:8px 4px;font-family:'Courier New',monospace;font-size:14px;outline:none;text-align:center;transition:border .2s}.si:focus{border-color:var(--acc)}
+.sd{width:30px;height:30px;border:1px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted2);transition:all .15s;flex-shrink:0}.sd.on{background:var(--green);border-color:var(--green);color:#000}
+.tb{background:var(--s2);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;gap:13px;flex-wrap:wrap}
+.tc{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted2)}.tc .tv{font-family:'Courier New',monospace;font-size:13px;color:var(--acc);font-weight:700}
+.dc{background:var(--s1);border:1px solid var(--border);padding:13px 15px;display:flex;align-items:center;gap:11px;transition:all .15s}
+.dc.td_{border-color:var(--acc);background:rgba(232,255,71,.04)}.dc.dn{border-color:var(--green);opacity:.7}.dc.rs{opacity:.45}
+.cg2{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:15px}.csp{grid-column:1/-1}
+.cb{background:var(--s1);border:1px solid var(--border2);color:var(--txt);padding:13px 9px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;text-align:center;line-height:1.4}
+.cb:hover,.cb.sel{border-color:var(--acc);background:rgba(232,255,71,.07);color:var(--acc)}.cb .ci{font-size:19px;display:block;margin-bottom:4px}
+.dots{display:flex;gap:5px;margin-bottom:22px}.dot{height:3px;flex:1;background:var(--border);transition:background .3s}.dot.on{background:var(--acc)}
+.mts{display:flex;border:1px solid var(--border2);margin-bottom:13px}.mt{flex:1;padding:10px;background:transparent;border:none;color:var(--muted2);font-family:inherit;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer}.mt.on{background:rgba(232,255,71,.08);color:var(--acc)}
+.spin{width:38px;height:38px;border:2px solid var(--border2);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tkg{display:flex;gap:5px;align-items:center;padding:9px}.td2{width:6px;height:6px;background:var(--muted);border-radius:50%;animation:bnc 1.1s infinite}.td2:nth-child(2){animation-delay:.18s}.td2:nth-child(3){animation-delay:.36s}
+@keyframes bnc{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+.msg{max-width:86%;padding:10px 12px;font-size:14px;line-height:1.65;word-break:break-word}
+.msg.u{align-self:flex-end;background:var(--acc);color:#000;font-weight:500}.msg.a{align-self:flex-start;background:var(--s2);border:1px solid var(--border)}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--s2);border:1px solid var(--acc);color:var(--acc);padding:8px 16px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;z-index:999;white-space:nowrap;animation:fup .3s ease}
+@keyframes fup{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.hc{background:var(--s1);border:1px solid var(--border);margin-bottom:8px;overflow:hidden}
+.sp{display:inline-flex;align-items:center;gap:3px;padding:3px 7px;font-family:'Courier New',monospace;font-size:11px;border:1px solid var(--border2);margin:2px;background:var(--s1);color:var(--muted2)}.sp.dn{border-color:rgba(68,255,170,.3);color:var(--green);background:rgba(68,255,170,.07)}
+.tbar{background:rgba(68,255,170,.06);border-top:1px solid rgba(68,255,170,.15);padding:7px 13px;display:flex;align-items:center;gap:7px}
+.fbb{background:transparent;border:1px solid var(--border2);color:var(--muted2);padding:4px 8px;font-size:11px;cursor:pointer;font-family:inherit;letter-spacing:1px;text-transform:uppercase;transition:all .15s;white-space:nowrap}.fbb:hover{border-color:var(--acc);color:var(--acc)}
+.fbo{background:var(--s1);border:1px solid var(--border2);color:var(--txt);padding:9px 11px;font-size:13px;cursor:pointer;font-family:inherit;text-align:left;transition:all .15s;display:block;width:100%;margin-bottom:5px}.fbo:hover{border-color:var(--acc);color:var(--acc)}
+.reb{width:100%;background:var(--s2);border:1px solid var(--border2);border-top:none;color:var(--muted2);padding:7px 14px;font-family:inherit;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}.reb:hover{border-color:var(--acc);color:var(--acc);background:rgba(232,255,71,.04)}
+.disp{font-weight:900;letter-spacing:2px;line-height:1}
+.ibd{background:rgba(68,255,170,.07);border:1px solid rgba(68,255,170,.25);border-left:3px solid var(--green);padding:8px 12px;margin-bottom:9px;font-size:13px;color:var(--green)}
 </style>
 </head>
 <body>
-<div id="root"></div>
-
+<div id="root">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#080808;gap:14px">
+    <div style="font-size:62px;font-weight:900;letter-spacing:8px;color:#e8ff47">FORGE</div>
+    <div style="font-size:12px;letter-spacing:3px;color:#555;text-transform:uppercase">Loading...</div>
+  </div>
+</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script>
+(function() {
+'use strict';
 
-<script type="text/babel">
-const { useState, useEffect, useRef, useCallback, useMemo } = React;
+// Alias - e() = React.createElement, pure JS, zero compilation needed
+const e = React.createElement;
+const {useState, useEffect, useRef, useCallback, useMemo, Fragment} = React;
 
-// ─── CONSTANTS ───────────────────────────────────────────────────────────────
-const STORAGE_KEY = 'forge_r1';
+// ── CONSTANTS ─────────────────────────────────────────────────────────────
+const STORE = 'forge_r2';
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-sonnet-4-20250514';
+const SPLITS = {2:'Full Body A/B', 3:'Push/Pull/Legs', 4:'Upper/Lower/Upper/Lower', 5:'PPL/Upper/Lower', 6:'PPL/PPL'};
 
-const DAYS_OF_WEEK = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+// ── API KEY ───────────────────────────────────────────────────────────────
+let _key = localStorage.getItem('forge_key') || '';
+const getKey = () => _key;
+const saveKey = k => { _key = k; localStorage.setItem('forge_key', k); };
 
-const SPLIT_GUIDE = {
-  2:'Full Body A / Full Body B',
-  3:'Push / Pull / Legs',
-  4:'Upper / Lower / Push / Pull',
-  5:'Push / Pull / Legs / Upper / Lower',
-  6:'Push / Pull / Legs / Push / Pull / Legs'
-};
-
-// ─── API KEY ─────────────────────────────────────────────────────────────────
-let _apiKey = '';
-function getApiKey() { return _apiKey || localStorage.getItem('forge_apikey') || ''; }
-function setApiKey(k) { _apiKey = k; localStorage.setItem('forge_apikey', k); }
-
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-async function callAI(messages, maxTokens = 1000) {
-  const key = getApiKey();
-  if (!key) throw new Error('No API key set. Please enter your Anthropic API key in Settings.');
-  const res = await fetch(API_URL, {
+// ── AI CALL ───────────────────────────────────────────────────────────────
+async function callAI(messages, maxTokens) {
+  maxTokens = maxTokens || 1000;
+  const k = getKey();
+  if (!k) throw new Error('No API key. Tap Settings to add your key.');
+  const r = await fetch(API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true',
-      'x-api-key': key,
+      'x-api-key': k
     },
-    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages })
+    body: JSON.stringify({model: MODEL, max_tokens: maxTokens, messages: messages})
   });
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => '');
-    throw new Error(`API ${res.status}: ${errBody}`);
-  }
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-  return data.content.map(c => c.text || '').join('');
+  if (!r.ok) { const t = await r.text(); throw new Error('API ' + r.status + ': ' + t); }
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d.content.map(function(c) { return c.text || ''; }).join('');
 }
 
-function parseJSON(text) {
-  return JSON.parse(text.replace(/```json|```/g, '').trim());
+// ── HELPERS ───────────────────────────────────────────────────────────────
+function jparse(text) {
+  const s = text.replace(/```json|```/gi, '').trim();
+  try { return JSON.parse(s); } catch(e1) {}
+  const a = s.indexOf('{'), b = s.lastIndexOf('}');
+  if (a > -1 && b > a) try { return JSON.parse(s.slice(a, b+1)); } catch(e2) {}
+  const c = s.indexOf('['), d = s.lastIndexOf(']');
+  if (c > -1 && d > c) try { return JSON.parse(s.slice(c, d+1)); } catch(e3) {}
+  throw new Error('JSON parse failed');
 }
-
-function parseRestSecs(r = '') {
-  const s = r.toLowerCase();
-  const m = s.match(/(\d+)\s*min/), sec = s.match(/(\d+)\s*s/);
-  return (m ? +m[1] * 60 : 0) + (sec ? +sec[1] : 0) || 60;
+function pdays(s) {
+  s = s || '';
+  if (s.includes('flexible') || s.includes('4-5')) return 5;
+  if (s.includes('sure') || s.includes('surprise')) return 4;
+  const m = s.match(/(\d+)/); return m ? Math.min(Math.max(+m[1], 2), 6) : 4;
 }
-
-function parseAvgReps(r = '') {
-  const range = r.match(/(\d+)\s*[-–]\s*(\d+)/);
-  if (range) return (+range[1] + +range[2]) / 2;
-  const n = r.match(/(\d+)/);
-  return n ? +n[1] : 10;
+function rsecs(s) {
+  s = s || ''; const lo = s.toLowerCase();
+  const m = lo.match(/(\d+)\s*min/), sec = lo.match(/(\d+)\s*s/);
+  return (m ? +m[1]*60 : 0) + (sec ? +sec[1] : 0) || 60;
 }
+function areps(s) {
+  s = s || ''; const r = s.match(/(\d+)\s*[-\u2013]\s*(\d+)/);
+  if (r) return (+r[1] + +r[2]) / 2;
+  const n = s.match(/(\d+)/); return n ? +n[1] : 10;
+}
+function emins(exs) {
+  let t = 300;
+  (exs || []).forEach(function(ex) { t += (ex.sets||3)*(areps(ex.reps)*4 + rsecs(ex.rest)) + 60; });
+  return Math.round(t / 60);
+}
+function fmins(m) { return m >= 60 ? Math.floor(m/60) + 'h ' + (m%60) + 'm' : m + ' min'; }
+function tday() { return new Date().toLocaleDateString('en-US', {weekday:'long'}); }
 
-function estimateWorkoutMins(exercises = []) {
-  let secs = 5 * 60; // warmup
-  exercises.forEach(ex => {
-    const sets = ex.sets || 3;
-    secs += sets * (parseAvgReps(ex.reps) * 4 + parseRestSecs(ex.rest)) + 60;
+function useLS(key, init) {
+  const [v, sv] = useState(function() {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : init; } catch(e) { return init; }
   });
-  return Math.round(secs / 60);
-}
-
-function formatMins(m) {
-  return m >= 60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m} min`;
-}
-
-function useLocalStorage(key, init) {
-  const [val, setVal] = useState(() => {
-    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : init; }
-    catch { return init; }
-  });
-  const set = useCallback(v => {
-    setVal(prev => {
-      const next = typeof v === 'function' ? v(prev) : v;
-      try { localStorage.setItem(key, JSON.stringify(next)); } catch {}
+  const set = useCallback(function(fn) {
+    sv(function(prev) {
+      const next = typeof fn === 'function' ? fn(prev) : fn;
+      try { localStorage.setItem(key, JSON.stringify(next)); } catch(e) {}
       return next;
     });
   }, [key]);
-  return [val, set];
+  return [v, set];
 }
 
-function Toast({ msg, onDone }) {
-  useEffect(() => { const t = setTimeout(onDone, 2200); return () => clearTimeout(t); }, []);
-  return <div className="toast">{msg}</div>;
-}
-
-function Spinner() {
-  return <div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'40px'}}>
-    <div className="spin"/>
-  </div>;
-}
-
-function formatAI(text = '') {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br/>');
-}
-
-// ─── DAY NUMBER HELPERS ───────────────────────────────────────────────────────
-function getDayNum(dayName) {
-  return DAYS_OF_WEEK.indexOf(dayName);
-}
-
-function getTodayName() {
-  return new Date().toLocaleDateString('en-US', { weekday: 'long' });
-}
-
-// ─── PLAN GENERATION ─────────────────────────────────────────────────────────
-function parseDaysCount(dStr = '') {
-  if (!dStr) return 4;
-  if (dStr.includes('flexible') || dStr.includes('4-5')) return 5;
-  if (dStr.includes('sure') || dStr.includes('surprise')) return 4;
-  // extract first number from strings like "4 days", "5 days", "6 days"
-  const m = dStr.match(/(\d+)/);
-  return m ? Math.min(Math.max(parseInt(m[1]), 2), 6) : 4;
-}
-
-function extractJSON(text) {
-  // Try direct parse first
-  try { return JSON.parse(text.trim()); } catch {}
-  // Strip markdown fences
-  const stripped = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-  try { return JSON.parse(stripped); } catch {}
-  // Find first { ... } block
-  const start = stripped.indexOf('{');
-  const end = stripped.lastIndexOf('}');
-  if (start !== -1 && end !== -1) {
-    try { return JSON.parse(stripped.slice(start, end + 1)); } catch {}
-  }
-  throw new Error('Could not parse JSON from response');
-}
-
-function buildLastWeekLog(history, weekNum, weekPlan) {
-  const weekEntries = history.filter(h => h.week === weekNum && !h.isPrior);
-  if (!weekEntries.length) return '';
-  return weekEntries.map(entry => {
-    const day = weekPlan?.days?.find(d => d.workoutName === entry.workoutName);
-    if (!entry.loggedSets || !day) return `${entry.workoutName}: ${entry.summary}`;
-    const details = day.exercises.map((ex, ei) => {
-      const sets = entry.loggedSets[ei] || [];
-      const logged = sets.filter(s => s.weight || s.reps);
-      if (!logged.length) return `  ${ex.name}: no data`;
-      const setsStr = logged.map(s => `${s.weight||'?'}lbs×${s.reps||'?'}`).join(', ');
-      return `  ${ex.name}: ${setsStr}`;
+function buildLog(history, weekNum, plan) {
+  const ents = (history || []).filter(function(h) { return h.week === weekNum && !h.isPrior; });
+  if (!ents.length) return '';
+  return ents.map(function(ent) {
+    const day = plan && plan.days && plan.days.find(function(d) { return d.workoutName === ent.workoutName; });
+    if (!ent.loggedSets || !day) return ent.workoutName + ': ' + ent.summary;
+    const lines = day.exercises.map(function(ex, ei) {
+      const s = (ent.loggedSets[ei] || []).filter(function(x) { return x.weight || x.reps; });
+      return '  ' + ex.name + ': ' + (s.length ? s.map(function(x) { return (x.weight||'?')+'x'+(x.reps||'?'); }).join(', ') : 'no data');
     }).join('\n');
-    return `${entry.workoutName}:\n${details}`;
+    return ent.workoutName + ':\n' + lines;
   }).join('\n\n');
 }
-  const n = parseDaysCount(profile.days);
-  const suggestedSplit = SPLIT_GUIDE[n] || SPLIT_GUIDE[4];
 
-  // User's explicit split preference takes absolute priority
-  const splitInstruction = profile.split
-    ? `TRAINING SPLIT — FOLLOW THIS EXACTLY: "${profile.split}"
-   The athlete has specified this split. You MUST use it. Do not substitute a different split.`
-    : `TRAINING SPLIT — AI choice: The athlete has no preference. Use a smart split for ${n} days.
-   Suggested: ${suggestedSplit}. Choose what best fits their goal (${profile.goal}).`;
-
-  const priorCtx = priorSummary ? `\nPRIOR HISTORY (calibrate intensity/weights from this):\n${priorSummary}\n` : '';
-  const lastCtx = lastWeekLog ? `\nLAST WEEK ACTUAL LOGGED DATA:\n${lastWeekLog}\n` : '';
-
-  const progressInstruction = lastWeekLog ? `
-PROGRESSIVE OVERLOAD — REQUIRED FOR WEEK ${weekNum}:
-Use the logged data above to prescribe specific targets. For every exercise that appeared last week, add a "target" field with exact weight and rep prescription, e.g. "target": "4×8 @ 195lbs (+5lbs from last week)" or "target": "3×10 @ 135lbs (same weight, hit all reps cleanly)".
-Apply standard progression: ~5lbs upper body compounds, ~10lbs lower body, same weight if reps weren't completed, deload 10% if athlete showed signs of fatigue.` : '';
-
-  const prompt = `You are FORGE, an expert AI personal trainer. Create a week ${weekNum} training plan.${priorCtx}${lastCtx}
-
-ATHLETE PROFILE:
-- Name: ${profile.name}
-- Goal: ${profile.goal}
-- Experience: ${profile.experience}
-- Equipment: ${profile.equipment}
-- Notes / injuries: ${profile.notes || 'none'}
-
-${splitInstruction}
-${progressInstruction}
-
-STRICT OUTPUT RULES:
-1. Return EXACTLY 7 day objects, Monday through Sunday.
-2. EXACTLY ${n} days must have "isRest": false. The other ${7 - n} must have "isRest": true.
-3. Every training day must have 4–5 exercises appropriate for that day's muscle group focus.
-4. Every exercise must be achievable with this equipment: ${profile.equipment}.
-5. Every exercise object must include: name (string), sets (number), reps (string), rest (string), notes (string). Include "target" (string) when progression data exists.
-6. The workoutName and focus for each day must match the split — different across days.
-${weekNum > 1 ? '7. Progress from last week using the actual logged data.' : ''}
-
-Return ONLY the JSON object with no extra text or markdown:
-{"weekTheme":"string","insight":"string","days":[{"dayName":"Monday","workoutName":"Upper Body A","focus":"Chest, Back, Shoulders","duration":"50 min","isRest":false,"exercises":[{"name":"Barbell Bench Press","sets":4,"reps":"6-8","rest":"2min","notes":"Drive through floor","target":"4×8 @ 190lbs (+5lbs)"}]},{"dayName":"Tuesday","workoutName":"Rest","focus":"Recovery","duration":"","isRest":true,"exercises":[]}]}`;
-
-  const text = await callAI([{ role: 'user', content: prompt }], 4000);
-  const plan = extractJSON(text);
-  if (!plan.days || plan.days.length !== 7) throw new Error(`Invalid plan: got ${plan.days?.length ?? 0} days`);
-  return { ...plan, trainingDays: n };
+async function genPlan(profile, weekNum, prior, lastLog) {
+  weekNum = weekNum || 1; prior = prior || ''; lastLog = lastLog || '';
+  const n = pdays(profile.days), sh = SPLITS[n] || SPLITS[4];
+  const sr = profile.split ? 'SPLIT REQUIRED: "' + profile.split + '" — follow exactly.' : 'Split AI chooses, suggest: ' + sh + ' for ' + n + ' days.';
+  const pr = prior ? '\nPRIOR TRAINING:\n' + prior + '\n' : '';
+  const lc = lastLog ? '\nLAST WEEK DATA:\n' + lastLog + '\n' : '';
+  const pg = lastLog ? '\nFor each exercise with last-week data, add "target" field e.g. "4x8@190lbs(+5lbs)". ~5lb upper/~10lb lower progression.' : '';
+  const prompt = 'You are FORGE AI trainer. Create week ' + weekNum + ' plan.' + pr + lc +
+    '\nAthlete: name=' + profile.name + ', goal=' + profile.goal + ', exp=' + profile.experience +
+    ', equip=' + profile.equipment + ', notes=' + (profile.notes||'none') + '\n' + sr + pg +
+    '\nRules: 1)Exactly 7 days Mon-Sun. 2)Exactly ' + n + ' isRest:false, ' + (7-n) + ' isRest:true. 3)4-5 exercises per training day. 4)Exercises suit: ' + profile.equipment + '. 5)Each exercise: name,sets(num),reps(str),rest(str),notes(str),optional target(str). 6)Different focus each training day.' +
+    '\nReturn JSON only:\n{"weekTheme":"...","insight":"...","days":[{"dayName":"Monday","workoutName":"Push Day","focus":"Chest","duration":"50 min","isRest":false,"exercises":[{"name":"Bench Press","sets":4,"reps":"6-8","rest":"2min","notes":"full ROM","target":"4x8@190"}]},{"dayName":"Tuesday","workoutName":"Rest","focus":"Recovery","duration":"","isRest":true,"exercises":[]}]}';
+  const text = await callAI([{role:'user', content:prompt}], 4000);
+  const pl = jparse(text);
+  if (!pl.days || pl.days.length !== 7) throw new Error('Bad plan: ' + (pl.days && pl.days.length) + ' days');
+  return Object.assign({}, pl, {n: n});
 }
 
-// ─── SCREENS ──────────────────────────────────────────────────────────────────
-
-// ─── API KEY SCREEN ───────────────────────────────────────────────────────────
-function ApiKeyScreen({ onSaved }) {
-  const [key, setKey] = useState('');
-  const [testing, setTesting] = useState(false);
-  const [err, setErr] = useState('');
-
-  const save = async () => {
-    const k = key.trim();
-    if (!k.startsWith('sk-ant-')) { setErr('Key should start with sk-ant-…'); return; }
-    setTesting(true); setErr('');
-    setApiKey(k);
-    try {
-      await callAI([{ role: 'user', content: 'Reply with the single word: ready' }], 20);
-      onSaved();
-    } catch(e) {
-      setErr('Key test failed: ' + e.message);
-      setApiKey('');
-    }
-    setTesting(false);
-  };
-
-  return (
-    <div className="screen" style={{alignItems:'center',justifyContent:'center',padding:'32px'}}>
-      <div style={{width:'100%',maxWidth:'420px'}}>
-        <div className="display" style={{fontSize:'52px',color:'var(--acc)',letterSpacing:'6px',marginBottom:'6px',textAlign:'center'}}>FORGE</div>
-        <div className="label" style={{textAlign:'center',marginBottom:'32px'}}>AI Personal Trainer</div>
-
-        <div style={{background:'var(--s1)',border:'1px solid var(--border)',padding:'24px',marginBottom:'20px'}}>
-          <div style={{fontWeight:700,fontSize:'15px',marginBottom:'8px'}}>🔑 Enter your Anthropic API Key</div>
-          <div style={{fontSize:'13px',color:'var(--muted2)',marginBottom:'16px',lineHeight:'1.6'}}>
-            FORGE uses the Anthropic API to generate your workouts and coach you. Your key is stored only on this device and never sent anywhere except Anthropic.
-          </div>
-          <div style={{fontSize:'12px',color:'var(--muted2)',marginBottom:'16px',lineHeight:'1.6',background:'var(--s2)',padding:'10px 12px',borderLeft:'2px solid var(--acc)'}}>
-            Get a free key at <strong style={{color:'var(--acc)'}}>console.anthropic.com</strong> → API Keys → Create Key
-          </div>
-          <div className="label" style={{marginBottom:'7px'}}>API Key</div>
-          <input
-            className="inp"
-            type="password"
-            value={key}
-            onChange={e => { setKey(e.target.value); setErr(''); }}
-            placeholder="sk-ant-api03-..."
-            style={{marginBottom:'12px',letterSpacing:'1px'}}
-            onKeyDown={e => e.key === 'Enter' && save()}
-          />
-          {err && <div style={{color:'var(--red)',fontSize:'12px',marginBottom:'10px'}}>{err}</div>}
-          <button className="btn btn-acc" style={{width:'100%'}} disabled={!key.trim() || testing} onClick={save}>
-            {testing ? 'TESTING KEY...' : 'SAVE & CONTINUE →'}
-          </button>
-        </div>
-        <div style={{fontSize:'11px',color:'var(--muted)',textAlign:'center',lineHeight:'1.6'}}>
-          Your key is saved locally on this device only.<br/>You can update it anytime from the settings icon.
-        </div>
-      </div>
-    </div>
-  );
+function fallback(p) {
+  return {weekTheme:'Foundation Week', insight:'Welcome ' + p.name + '! Building your foundation for ' + p.goal + '. Focus on form — every rep counts.', n:4, days:[
+    {dayName:'Monday',workoutName:'Upper Body A',focus:'Chest, Back',duration:'50 min',isRest:false,exercises:[{name:'Bench Press',sets:4,reps:'6-8',rest:'2min',notes:'Full ROM'},{name:'Barbell Row',sets:4,reps:'6-8',rest:'2min',notes:'Flat back'},{name:'Overhead Press',sets:3,reps:'8-10',rest:'90s',notes:'Brace core'},{name:'Pull-Up',sets:3,reps:'8-10',rest:'90s',notes:'Full stretch'}]},
+    {dayName:'Tuesday',workoutName:'Lower Body A',focus:'Quads, Glutes',duration:'50 min',isRest:false,exercises:[{name:'Squat',sets:4,reps:'6-8',rest:'2min',notes:'Break parallel'},{name:'Romanian Deadlift',sets:3,reps:'8-10',rest:'90s',notes:'Hip hinge'},{name:'Leg Press',sets:3,reps:'12-15',rest:'75s',notes:'Full range'},{name:'Walking Lunges',sets:3,reps:'10 each',rest:'60s',notes:'Knee over toe'}]},
+    {dayName:'Wednesday',workoutName:'Rest',focus:'Recovery',duration:'',isRest:true,exercises:[]},
+    {dayName:'Thursday',workoutName:'Upper Body B',focus:'Shoulders, Arms',duration:'50 min',isRest:false,exercises:[{name:'Incline Dumbbell Press',sets:3,reps:'10-12',rest:'75s',notes:'Controlled'},{name:'Cable Row',sets:3,reps:'10-12',rest:'75s',notes:'Squeeze at peak'},{name:'Lateral Raise',sets:3,reps:'15-20',rest:'60s',notes:'Lead with elbows'},{name:'Tricep Pushdown',sets:3,reps:'12-15',rest:'60s',notes:'Elbows tucked'}]},
+    {dayName:'Friday',workoutName:'Lower Body B',focus:'Hamstrings, Glutes',duration:'50 min',isRest:false,exercises:[{name:'Deadlift',sets:4,reps:'5-6',rest:'2.5min',notes:'Hips back'},{name:'Hack Squat',sets:3,reps:'10-12',rest:'90s',notes:'Control descent'},{name:'Leg Curl',sets:3,reps:'12-15',rest:'60s',notes:'Full ROM'},{name:'Hip Thrust',sets:3,reps:'12-15',rest:'60s',notes:'Drive hips hard'}]},
+    {dayName:'Saturday',workoutName:'Rest',focus:'Recovery',duration:'',isRest:true,exercises:[]},
+    {dayName:'Sunday',workoutName:'Rest',focus:'Recovery',duration:'',isRest:true,exercises:[]}
+  ]};
 }
 
-// ─── SETTINGS MODAL ───────────────────────────────────────────────────────────
-function SettingsModal({ currentKey, onSaved, onClose }) {
-  const [editing, setEditing] = useState(false);
-  const [newKey, setNewKey] = useState('');
-  const [testing, setTesting] = useState(false);
-  const [err, setErr] = useState('');
-  const [saved, setSaved] = useState(false);
-
-  const maskedKey = currentKey ? '••••••••' + currentKey.slice(-8) : null;
-
-  const save = async () => {
-    const k = newKey.trim();
-    if (!k.startsWith('sk-ant-')) { setErr('Key should start with sk-ant-…'); return; }
-    setTesting(true); setErr('');
-    setApiKey(k);
-    try {
-      await callAI([{ role: 'user', content: 'Reply with the single word: ready' }], 20);
-      setSaved(true);
-      onSaved();
-      setTimeout(() => { setSaved(false); setEditing(false); setNewKey(''); }, 1200);
-    } catch(e) {
-      setErr('Key test failed: ' + e.message);
-      setApiKey(currentKey || '');
-    }
-    setTesting(false);
-  };
-
-  return (
-    <div className="modal-bg" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-sheet">
-        <div className="display" style={{fontSize:'26px',marginBottom:'20px'}}>⚙ SETTINGS</div>
-
-        {/* API Key section */}
-        <div style={{background:'var(--s2)',border:'1px solid var(--border)',padding:'16px',marginBottom:'16px'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
-            <div className="label">Anthropic API Key</div>
-            {currentKey && !editing && (
-              <span style={{fontSize:'11px',color:'var(--green)',letterSpacing:'1px',textTransform:'uppercase'}}>✓ Connected</span>
-            )}
-          </div>
-
-          {!editing ? (
-            <>
-              <div style={{fontFamily:'var(--font-mono)',fontSize:'13px',color:'var(--muted2)',marginBottom:'12px',padding:'10px 12px',background:'var(--bg)',border:'1px solid var(--border)'}}>
-                {maskedKey || <span style={{color:'var(--red)'}}>No key set</span>}
-              </div>
-              <button className="btn btn-ghost" style={{width:'100%'}} onClick={() => setEditing(true)}>
-                {currentKey ? 'CHANGE KEY' : 'ADD KEY'}
-              </button>
-            </>
-          ) : (
-            <>
-              <input className="inp" type="password" value={newKey}
-                onChange={e => { setNewKey(e.target.value); setErr(''); }}
-                placeholder="sk-ant-api03-..."
-                style={{marginBottom:'8px'}}
-                onKeyDown={e => e.key === 'Enter' && save()}
-                autoFocus
-              />
-              {err && <div style={{color:'var(--red)',fontSize:'12px',marginBottom:'8px'}}>{err}</div>}
-              {saved && <div style={{color:'var(--green)',fontSize:'12px',marginBottom:'8px'}}>✓ Key saved and verified!</div>}
-              <div style={{display:'flex',gap:'8px'}}>
-                <button className="btn btn-ghost" style={{flex:1}} onClick={() => { setEditing(false); setNewKey(''); setErr(''); }}>CANCEL</button>
-                <button className="btn btn-acc" style={{flex:2}} disabled={!newKey.trim() || testing} onClick={save}>
-                  {testing ? 'TESTING...' : 'SAVE & VERIFY →'}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Info */}
-        <div style={{fontSize:'12px',color:'var(--muted2)',lineHeight:'1.7',marginBottom:'20px'}}>
-          Get your API key at <strong style={{color:'var(--acc)'}}>console.anthropic.com</strong> → API Keys.<br/>
-          Your key is stored only on this device and sent only to Anthropic.<br/>
-          Typical cost: ~$0.05–0.10 per week of training.
-        </div>
-
-        <button className="btn btn-ghost" style={{width:'100%'}} onClick={onClose}>CLOSE</button>
-      </div>
-    </div>
-  );
-}
-
-// SPLASH
-function Splash({ onStart, hasData, onManageKey }) {
-  return (
-    <div className="screen" style={{alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}}>
-      <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse at 25% 60%,rgba(232,255,71,.07) 0%,transparent 55%),radial-gradient(ellipse at 80% 20%,rgba(255,107,53,.07) 0%,transparent 50%)'}}/>
-      <div style={{position:'relative',textAlign:'center',padding:'40px 32px',zIndex:1}}>
-        <div className="display" style={{fontSize:'clamp(88px,26vw,148px)',color:'var(--acc)',letterSpacing:'10px',marginBottom:'4px'}}>FORGE</div>
-        <div className="label" style={{marginBottom:'52px'}}>AI Personal Trainer</div>
-        <div style={{display:'flex',flexDirection:'column',gap:'12px',alignItems:'center'}}>
-          <button className="btn btn-acc" style={{width:'220px'}} onClick={onStart}>
-            {hasData ? 'CONTINUE TRAINING' : 'GET STARTED'}
-          </button>
-          {hasData && <button className="btn btn-ghost" style={{width:'220px'}} onClick={onStart}>RESET & RESTART</button>}
-          <button className="btn btn-ghost" style={{width:'220px',marginTop:'8px'}} onClick={onManageKey}>
-            🔑 API KEY SETTINGS
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ONBOARDING
-const STEPS = [
-  { title: "WHAT'S YOUR GOAL?", sub: 'Choose your primary objective' },
-  { title: 'EXPERIENCE LEVEL', sub: 'How long have you been training?' },
-  { title: 'DAYS PER WEEK', sub: 'How many days can you commit to?' },
-  { title: 'EQUIPMENT', sub: 'What do you have access to?' },
-  { title: 'FINAL DETAILS', sub: 'Personalize your plan' },
-];
-
-function Onboarding({ onComplete }) {
-  const [step, setStep] = useState(0);
-  const [data, setData] = useState({});
-
-  const sel = (key, val) => setData(p => ({ ...p, [key]: val }));
-
-  const canNext = () => {
-    if (step === 0) return !!data.goal;
-    if (step === 1) return !!data.experience;
-    if (step === 2) return !!data.days;
-    if (step === 3) return !!data.equipment;
-    return true;
-  };
-
-  const next = () => {
-    if (step < STEPS.length - 1) setStep(s => s + 1);
-    else onComplete({
-      name: data.name?.trim() || 'Athlete',
-      goal: data.goal,
-      experience: data.experience,
-      days: data.days,
-      equipment: data.equipment,
-      split: data.split?.trim() || '',
-      notes: data.notes || ''
-    });
-  };
-
-  return (
-    <div className="screen">
-      <div style={{padding:'52px 22px 0'}}>
-        <div className="dots">
-          {STEPS.map((_, i) => <div key={i} className={`dot${i < step ? ' done' : ''}`}/>)}
-        </div>
-        <div className="display" style={{fontSize:'clamp(32px,9vw,48px)',marginBottom:'6px'}}>{STEPS[step].title}</div>
-        <div className="label" style={{marginBottom:'28px'}}>{STEPS[step].sub}</div>
-      </div>
-      <div className="page" style={{padding:'0 22px',paddingBottom:'100px'}}>
-        {step === 0 && <div className="cgrid">
-          {[['💪','Build Muscle'],['🔥','Lose Fat'],['🏋️','Build Strength'],['🏃','Improve Endurance']].map(([ic,v]) =>
-            <button key={v} className={`cbtn${data.goal===v?' sel':''}`} onClick={()=>sel('goal',v)}><span className="ci">{ic}</span>{v}</button>
-          )}
-          <button className={`cbtn cspan${data.goal==='General Fitness'?' sel':''}`} onClick={()=>sel('goal','General Fitness')}><span className="ci">⚡</span>General Fitness</button>
-        </div>}
-
-        {step === 1 && <div className="cgrid">
-          {[['🌱','Beginner (0-1 years)'],['📈','Intermediate (1-3 years)'],['🔱','Advanced (3+ years)']].map(([ic,v]) =>
-            <button key={v} className={`cbtn cspan${data.experience===v?' sel':''}`} onClick={()=>sel('experience',v)}><span className="ci">{ic}</span>{v}</button>
-          )}
-        </div>}
-
-        {step === 2 && <div className="cgrid">
-          {[['2️⃣','2 days'],['3️⃣','3 days'],['4️⃣','4 days'],['5️⃣','5 days'],['6️⃣','6 days'],['🔄','4-5 days (flexible)']].map(([ic,v]) =>
-            <button key={v} className={`cbtn${data.days===v?' sel':''}`} onClick={()=>sel('days',v)}><span className="ci">{ic}</span>{v}</button>
-          )}
-          <button className={`cbtn cspan${data.days==='Not sure — surprise me'?' sel':''}`} onClick={()=>sel('days','Not sure — surprise me')}><span className="ci">🎲</span>Not sure — let AI decide</button>
-        </div>}
-
-        {step === 3 && <div className="cgrid">
-          {[['🏪','Full Gym'],['🏠','Home + Dumbbells']].map(([ic,v]) =>
-            <button key={v} className={`cbtn${data.equipment===v?' sel':''}`} onClick={()=>sel('equipment',v)}><span className="ci">{ic}</span>{v}</button>
-          )}
-          <button className={`cbtn cspan${data.equipment==='Bodyweight Only'?' sel':''}`} onClick={()=>sel('equipment','Bodyweight Only')}><span className="ci">🧘</span>Bodyweight Only</button>
-        </div>}
-
-        {step === 4 && <>
-          <div style={{marginBottom:'14px'}}>
-            <div className="label" style={{marginBottom:'7px'}}>Your name</div>
-            <input className="inp" value={data.name||''} onChange={e=>sel('name',e.target.value)} placeholder="e.g. Alex"/>
-          </div>
-          <div style={{marginBottom:'14px'}}>
-            <div className="label" style={{marginBottom:'7px'}}>Preferred training split (optional)</div>
-            <input className="inp" value={data.split||''} onChange={e=>sel('split',e.target.value)}
-              placeholder="e.g. 2 upper / 2 lower, Push Pull Legs, full body — or leave blank to let AI decide"/>
-            <div style={{fontSize:'11px',color:'var(--muted2)',marginTop:'5px',lineHeight:'1.5'}}>
-              Be as specific as you want — the AI will follow your instructions exactly.
-            </div>
-          </div>
-          <div>
-            <div className="label" style={{marginBottom:'7px'}}>How are you feeling? Injuries or notes?</div>
-            <textarea className="inp" value={data.notes||''} onChange={e=>sel('notes',e.target.value)} placeholder="e.g. Feeling strong! Slight shoulder issue so avoid heavy overhead pressing."/>
-          </div>
-        </>}
-      </div>
-      <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'14px 22px 32px',background:'linear-gradient(transparent,var(--bg) 40%)'}}>
-        <div style={{display:'flex',gap:'10px'}}>
-          {step > 0 && <button className="btn btn-ghost" style={{flex:'0 0 80px'}} onClick={()=>setStep(s=>s-1)}>← BACK</button>}
-          <button className="btn btn-acc" style={{flex:1}} disabled={!canNext()} onClick={next}>
-            {step === STEPS.length - 1 ? 'BUILD MY PLAN →' : 'NEXT →'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// GENERATING
-function Generating({ message = 'Building your personalized plan...' }) {
-  return (
-    <div className="screen" style={{alignItems:'center',justifyContent:'center'}}>
-      <div style={{textAlign:'center',padding:'40px'}}>
-        <div className="display" style={{fontSize:'52px',color:'var(--acc)',marginBottom:'40px',letterSpacing:'6px'}}>FORGE</div>
-        <div className="spin" style={{margin:'0 auto 24px'}}/>
-        <div className="label">{message}</div>
-      </div>
-    </div>
-  );
-}
-
-// DASHBOARD
-function Dashboard({ state, onStartWorkout, onOpenChat, onMissedDays, onOpenSettings }) {
-  const { profile, weekPlan, weekNum, history } = state;
-  if (!profile || !weekPlan) return null;
-
-  const today = getTodayName();
-
-  const isCompleted = (idx) => history.some(h => h.dayIndex === idx && h.week === weekNum);
-
-  return (
-    <div className="screen">
-      <div className="page">
-        {/* Header */}
-        <div style={{padding:'52px 20px 16px',background:'linear-gradient(180deg,var(--s1) 0%,transparent 100%)',position:'relative'}}>
-          <button
-            onClick={onOpenSettings}
-            style={{position:'absolute',top:'52px',right:'20px',background:'var(--s2)',border:'1px solid var(--border2)',color:'var(--muted2)',padding:'6px 12px',cursor:'pointer',fontSize:'12px',display:'flex',alignItems:'center',gap:'5px',transition:'all 0.2s',fontFamily:'var(--font-body)',fontWeight:600,letterSpacing:'1px',textTransform:'uppercase'}}
-            onMouseOver={e=>{e.currentTarget.style.borderColor='var(--acc)';e.currentTarget.style.color='var(--acc)'}}
-            onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.color='var(--muted2)'}}
-          >⚙ SETTINGS</button>
-          <div className="label" style={{marginBottom:'3px'}}>Welcome back,</div>
-          <div className="display" style={{fontSize:'clamp(40px,12vw,60px)',color:'var(--acc)'}}>{profile.name.toUpperCase()}</div>
-          <div style={{fontSize:'13px',color:'var(--muted2)',marginTop:'4px'}}>Week {weekNum} · {weekPlan.weekTheme}</div>
-          {profile.split && (
-            <div style={{fontSize:'12px',color:'var(--muted2)',marginTop:'3px',display:'flex',alignItems:'center',gap:'5px'}}>
-              <span style={{color:'var(--acc2)'}}>⚡</span>
-              <span>{profile.split}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Week plan */}
-        <div style={{padding:'0 20px',marginBottom:'24px'}}>
-          <div className="sec-hdr"><span className="label">This Week</span></div>
-          {weekPlan.days.map((day, idx) => {
-            const isToday = day.dayName === today;
-            const done = isCompleted(idx);
-            const isRest = day.isRest;
-            return (
-              <div key={idx} style={{marginBottom:'8px'}}>
-                <div
-                  className={`day-card${isToday&&!done?' today':''}${done?' done':''}${isRest?' rest':''}`}
-                  style={{cursor:isRest?'default':'pointer',marginBottom:0}}
-                  onClick={() => !isRest && !done && onStartWorkout(idx, false)}
-                >
-                  <div className="display" style={{fontSize:'26px',minWidth:'38px',color:done?'var(--green)':'var(--acc)'}}>
-                    {day.dayName.slice(0,3).toUpperCase()}
-                  </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontWeight:600,fontSize:'14px'}}>{day.workoutName}</div>
-                    <div style={{fontSize:'12px',color:'var(--muted2)',marginTop:'2px'}}>
-                      {isRest ? 'Rest & Recovery' : `${day.focus}${day.duration?' · '+day.duration:''}`}
-                    </div>
-                  </div>
-                  {done && <span className="chip chip-green">✓ DONE</span>}
-                  {!done && isToday && !isRest && <span className="chip chip-acc">TODAY</span>}
-                  {isRest && <span className="chip chip-muted">REST</span>}
-                </div>
-                {/* Reopen button — always visible for completed workouts */}
-                {done && (
-                  <button
-                    onClick={() => onStartWorkout(idx, true)}
-                    style={{width:'100%',background:'var(--s2)',border:'1px solid var(--border2)',borderTop:'none',color:'var(--muted2)',padding:'9px 16px',fontFamily:'var(--font-body)',fontSize:'12px',fontWeight:600,letterSpacing:'1.5px',textTransform:'uppercase',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',transition:'all 0.15s'}}
-                    onMouseOver={e=>{e.currentTarget.style.borderColor='var(--acc)';e.currentTarget.style.color='var(--acc)';e.currentTarget.style.background='rgba(232,255,71,0.05)'}}
-                    onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.color='var(--muted2)';e.currentTarget.style.background='var(--s2)'}}
-                  >✏️ EDIT / REOPEN WORKOUT</button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* AI Insight */}
-        <div style={{padding:'0 20px',marginBottom:'20px'}}>
-          <div className="sec-hdr"><span className="label">Coach Insight</span></div>
-          <div className="card card-acc" style={{fontSize:'13px',lineHeight:'1.7',color:'#ccc'}}>
-            {weekPlan.insight}
-          </div>
-        </div>
-
-        {/* Missed days */}
-        <div style={{padding:'0 20px',marginBottom:'32px'}}>
-          <button className="btn btn-ghost" style={{width:'100%'}} onClick={onMissedDays}>
-            ⚠️ MISSED DAYS? TELL YOUR COACH
-          </button>
-        </div>
-      </div>
-
-      {/* Chat FAB */}
-      <button
-        onClick={onOpenChat}
-        style={{position:'absolute',bottom:'calc(72px + var(--safe-bottom))',right:'18px',width:'52px',height:'52px',background:'var(--acc)',border:'none',borderRadius:'50%',fontSize:'22px',cursor:'pointer',boxShadow:'0 4px 20px rgba(232,255,71,0.25)',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center'}}
-      >🤖</button>
-    </div>
-  );
-}
-
-// WORKOUT
-function SetRow({ set, setIdx, exIdx, onUpdate, onToggle }) {
-  return (
-    <div className="set-row">
-      <div className="mono" style={{fontSize:'12px',color:'var(--muted2)',minWidth:'20px'}}>{setIdx+1}</div>
-      <input className="set-inp" type="number" placeholder="lbs" value={set.weight}
-        onChange={e => onUpdate(exIdx, setIdx, 'weight', e.target.value)}/>
-      <input className="set-inp" type="number" placeholder="reps" value={set.reps}
-        onChange={e => onUpdate(exIdx, setIdx, 'reps', e.target.value)}/>
-      <button className={`set-done-btn${set.done?' done':''}`} onClick={() => onToggle(exIdx, setIdx)}>
-        {set.done ? '✓' : '○'}
-      </button>
-    </div>
-  );
-}
-
-function ExerciseCard({ exercise, exIdx, sets, onUpdateSet, onToggleSet, onAddSet, onSwap, onRemove, onFeedback }) {
-  const [open, setOpen] = useState(false);
-  const [confirmRemove, setConfirmRemove] = useState(false);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [feedbackLoading, setFeedbackLoading] = useState(false);
-
-  const FEEDBACK_OPTIONS = [
-    ['😓', 'Too heavy — struggled'],
-    ['😴', 'Fatigued / not recovered'],
-    ['😌', 'Felt easy — could go heavier'],
-    ['🤕', 'Pain or discomfort'],
-    ['✅', 'Felt perfect as prescribed'],
-  ];
-
-  const submitFeedback = async (reason) => {
-    setShowFeedback(false);
-    setFeedbackLoading(true);
-    const completedSets = sets.filter(s => s.weight || s.reps);
-    const loggedStr = completedSets.map(s => `${s.weight||'?'}lbs×${s.reps||'?'}`).join(', ');
-    try {
-      const text = await callAI([{ role: 'user', content:
-        `An athlete is mid-workout and gave feedback on an exercise.
-Exercise: ${exercise.name}
-Prescribed: ${exercise.sets}×${exercise.reps}${exercise.target ? ' (target: ' + exercise.target + ')' : ''}
-Logged so far: ${loggedStr || 'not started yet'}
-Feedback: "${reason}"
-
-Adjust the remaining sets for this exercise. Return ONLY JSON:
-{"adjustedSets": [{"weight": 135, "reps": 8}, {"weight": 135, "reps": 8}], "message": "one sentence explaining the adjustment"}
-- adjustedSets should cover however many sets are remaining (total sets minus completed).
-- If feedback is positive, keep or increase slightly. If fatigued/heavy, reduce weight 5-10%, reduce reps, or both.` }], 200);
-      const result = extractJSON(text);
-      if (result.adjustedSets?.length) {
-        onFeedback(exIdx, completedSets.length, result.adjustedSets, result.message);
-      }
-    } catch(e) {
-      console.error('Feedback error:', e);
-    }
-    setFeedbackLoading(false);
-  };
-
-  return (
-    <div className="ex-card">
-      <div className="ex-header" onClick={() => setOpen(o => !o)}>
-        <div style={{flex:1}}>
-          <div style={{fontWeight:600,fontSize:'14px'}}>{exercise.name}</div>
-          <div style={{fontSize:'12px',color:'var(--muted2)',marginTop:'2px'}}>
-            {exercise.sets} sets × {exercise.reps} · Rest {exercise.rest}
-          </div>
-        </div>
-        <button
-          onClick={e => { e.stopPropagation(); onSwap(exIdx); }}
-          style={{background:'transparent',border:'1px solid var(--border2)',color:'var(--muted2)',padding:'5px 9px',fontSize:'11px',cursor:'pointer',fontFamily:'var(--font-body)',letterSpacing:'1px',textTransform:'uppercase',marginRight:'6px',transition:'all 0.15s',flexShrink:0}}
-          onMouseOver={e=>{e.currentTarget.style.borderColor='var(--acc2)';e.currentTarget.style.color='var(--acc2)'}}
-          onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.color='var(--muted2)'}}
-        >⇄ SWAP</button>
-        <button
-          onClick={e => { e.stopPropagation(); setConfirmRemove(v => !v); }}
-          style={{background:'transparent',border:'none',color:'var(--muted2)',fontSize:'18px',cursor:'pointer',padding:'0 3px',lineHeight:1,flexShrink:0,transition:'color 0.15s'}}
-          onMouseOver={e=>e.currentTarget.style.color='var(--red)'}
-          onMouseOut={e=>e.currentTarget.style.color='var(--muted2)'}
-        >✕</button>
-        <div style={{marginLeft:'6px',color:'var(--muted2)',fontSize:'14px',transition:'transform 0.2s',transform:open?'rotate(180deg)':'none',flexShrink:0}}>▼</div>
-      </div>
-
-      {/* Prescribed target banner */}
-      {exercise.target && (
-        <div style={{background:'rgba(68,255,170,0.07)',borderTop:'1px solid rgba(68,255,170,0.2)',padding:'8px 14px',display:'flex',alignItems:'center',gap:'8px'}}>
-          <span style={{fontSize:'13px'}}>🎯</span>
-          <div style={{flex:1}}>
-            <span style={{fontSize:'11px',letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--green)',fontWeight:700}}>THIS WEEK'S TARGET  </span>
-            <span style={{fontSize:'13px',color:'#ccc',fontFamily:'var(--font-mono)'}}>{exercise.target}</span>
-          </div>
-          <button
-            onClick={e => { e.stopPropagation(); setShowFeedback(v => !v); }}
-            style={{background:'transparent',border:'1px solid var(--border2)',color:'var(--muted2)',padding:'4px 9px',fontSize:'11px',cursor:'pointer',fontFamily:'var(--font-body)',letterSpacing:'1px',textTransform:'uppercase',flexShrink:0,transition:'all 0.15s'}}
-            onMouseOver={e=>{e.currentTarget.style.borderColor='var(--acc)';e.currentTarget.style.color='var(--acc)'}}
-            onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.color='var(--muted2)'}}
-          >{feedbackLoading ? '...' : '💬 FEEDBACK'}</button>
-        </div>
-      )}
-
-      {/* Feedback options (also available without target) */}
-      {!exercise.target && (
-        <div style={{padding:'6px 14px',borderTop:'1px solid var(--border)'}}>
-          <button
-            onClick={e => { e.stopPropagation(); setShowFeedback(v => !v); }}
-            style={{background:'transparent',border:'none',color:'var(--muted2)',fontSize:'12px',cursor:'pointer',fontFamily:'var(--font-body)',letterSpacing:'1px',textTransform:'uppercase',padding:'4px 0',transition:'color 0.15s'}}
-            onMouseOver={e=>e.currentTarget.style.color='var(--acc)'}
-            onMouseOut={e=>e.currentTarget.style.color='var(--muted2)'}
-          >{feedbackLoading ? '⏳ Adjusting...' : '💬 How does this feel?'}</button>
-        </div>
-      )}
-
-      {/* Feedback picker */}
-      {showFeedback && (
-        <div style={{borderTop:'1px solid var(--border)',padding:'10px 14px',background:'var(--s2)'}}>
-          <div className="label" style={{marginBottom:'8px'}}>How did this feel?</div>
-          <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
-            {FEEDBACK_OPTIONS.map(([ic, label]) => (
-              <button key={label}
-                onClick={() => submitFeedback(label)}
-                style={{background:'var(--s1)',border:'1px solid var(--border2)',color:'var(--txt)',padding:'9px 12px',fontSize:'13px',cursor:'pointer',fontFamily:'var(--font-body)',textAlign:'left',transition:'all 0.15s',display:'flex',alignItems:'center',gap:'10px'}}
-                onMouseOver={e=>{e.currentTarget.style.borderColor='var(--acc)';e.currentTarget.style.color='var(--acc)'}}
-                onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.color='var(--txt)'}}
-              >{ic} {label}</button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {confirmRemove && (
-        <div className="rm-confirm">
-          <span style={{fontSize:'13px',color:'#ff8888'}}>Remove <strong>{exercise.name}</strong>?</span>
-          <div style={{display:'flex',gap:'8px'}}>
-            <button className="btn btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={()=>setConfirmRemove(false)}>CANCEL</button>
-            <button className="btn btn-danger" style={{padding:'6px 14px',fontSize:'12px',background:'var(--red)',color:'#fff',border:'none'}} onClick={()=>onRemove(exIdx)}>REMOVE</button>
-          </div>
-        </div>
-      )}
-
-      {open && (
-        <div className="ex-body">
-          <div style={{fontSize:'12px',color:'var(--muted2)',marginBottom:'12px',fontStyle:'italic'}}>{exercise.notes}</div>
-          <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}>
-            <div className="label" style={{flex:1,textAlign:'center'}}>WEIGHT</div>
-            <div className="label" style={{flex:1,textAlign:'center'}}>REPS</div>
-            <div style={{width:'30px'}}/>
-          </div>
-          {sets.map((set, si) => (
-            <SetRow key={si} set={set} setIdx={si} exIdx={exIdx}
-              onUpdate={onUpdateSet} onToggle={onToggleSet}/>
-          ))}
-          <button
-            onClick={() => onAddSet(exIdx)}
-            style={{width:'100%',background:'transparent',border:'1px dashed var(--border2)',color:'var(--muted2)',padding:'8px',fontSize:'12px',cursor:'pointer',fontFamily:'var(--font-body)',letterSpacing:'1px',textTransform:'uppercase',marginTop:'4px',transition:'all 0.15s'}}
-            onMouseOver={e=>{e.currentTarget.style.borderColor='var(--acc)';e.currentTarget.style.color='var(--acc)'}}
-            onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.color='var(--muted2)'}}
-          >+ ADD SET</button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function WorkoutScreen({ dayIdx, weekPlan, profile, sets, isReopening, onUpdateSet, onToggleSet, onAddSet, onSwap, onRemove, onAddExercise, onFinish, onBack, onVoiceLog, onFeedback, coachTip, coachLoading }) {
-  const day = weekPlan.days[dayIdx];
-  const exercises = day.exercises;
-
-  const [voiceActive, setVoiceActive] = useState(false);
-  const [voiceText, setVoiceText] = useState('');
-  const [voiceParsing, setVoiceParsing] = useState(false);
-  const srRef = useRef(null);
-
-  const mins = useMemo(() => estimateWorkoutMins(exercises), [exercises]);
-  const totalSets = useMemo(() => exercises.reduce((a, ex) => a + (ex.sets || 3), 0), [exercises]);
-
-  // Parse final transcript into set data via AI
-  const parseVoiceIntoSets = async (transcript) => {
-    setVoiceParsing(true);
-    setVoiceText('Logging: "' + transcript + '"');
-    const exNames = exercises.map((e, i) => `${i}: ${e.name}`).join(', ');
-    try {
-      const text = await callAI([{ role: 'user', content:
-        `Parse this voice log into workout set data.
-Voice: "${transcript}"
-Exercises in this workout (by index): ${exNames}
-
-Return ONLY JSON: {"exerciseIndex": 0, "sets": [{"weight": 135, "reps": 8}, {"weight": 135, "reps": 8}]}
-- Match the exercise name as closely as possible to find the right index.
-- If weight is not mentioned, use null.
-- If you cannot parse it, return {"exerciseIndex": -1, "sets": []}` }], 200);
-      const parsed = extractJSON(text);
-      if (parsed.exerciseIndex >= 0 && parsed.sets?.length) {
-        onVoiceLog(parsed.exerciseIndex, parsed.sets);
-        setVoiceText(`✓ Logged ${parsed.sets.length} set${parsed.sets.length > 1 ? 's' : ''} for ${exercises[parsed.exerciseIndex]?.name}`);
-      } else {
-        setVoiceText('Could not match to an exercise — try again or log manually.');
-      }
-    } catch(e) {
-      setVoiceText('Voice log failed: ' + e.message);
-    }
-    setVoiceParsing(false);
-  };
-
-  const toggleVoice = async () => {
-    if (voiceActive) {
-      srRef.current?.stop();
-      setVoiceActive(false);
-      return;
-    }
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
-      alert('Voice input is not supported in this browser.\n\niOS: Use Safari\nAndroid: Use Chrome');
-      return;
-    }
-    try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch(permErr) {
-      alert('Microphone access denied. Please allow microphone access in your browser settings and try again.');
-      return;
-    }
-    const sr = new SR();
-    sr.continuous = false; sr.interimResults = true; sr.lang = 'en-US';
-    let finalTranscript = '';
-    sr.onresult = e => {
-      const t = Array.from(e.results).map(r => r[0].transcript).join('');
-      setVoiceText(t);
-      if (e.results[e.results.length - 1].isFinal) finalTranscript = t;
-    };
-    sr.onerror = e => {
-      console.error('Speech recognition error:', e.error);
-      setVoiceActive(false);
-      if (e.error === 'not-allowed') alert('Microphone permission denied. Check your browser settings.');
-      else if (e.error === 'no-speech') setVoiceText('No speech detected — try again.');
-      else setVoiceText(`Voice error: ${e.error}`);
-    };
-    sr.onend = () => {
-      setVoiceActive(false);
-      if (finalTranscript.trim()) parseVoiceIntoSets(finalTranscript.trim());
-    };
-    srRef.current = sr;
-    try {
-      sr.start();
-      setVoiceActive(true);
-      setVoiceText('Listening… say e.g. "bench press 3 sets of 8 at 135"');
-    } catch(startErr) {
-      console.error('SR start error:', startErr);
-      alert('Could not start voice recognition: ' + startErr.message);
-    }
-  };
-
-  return (
-    <div className="screen">
-      {/* Header */}
-      <div style={{background:'var(--s1)',borderBottom:'1px solid var(--border)',padding:'50px 20px 14px',flexShrink:0}}>
-        <button className="btn btn-ghost" style={{padding:'6px 12px',fontSize:'12px',marginBottom:'12px'}} onClick={onBack}>← BACK</button>
-        <div className="display" style={{fontSize:'clamp(32px,10vw,46px)'}}>{day.workoutName.toUpperCase()}</div>
-        <div style={{fontSize:'13px',color:'var(--muted2)',marginTop:'3px'}}>{day.focus}</div>
-      </div>
-
-      {/* Time bar */}
-      <div className="time-bar" style={{flexShrink:0}}>
-        <div className={`tc${mins>90?' over':''}`}><span>⏱</span><span className="tv">~{formatMins(mins)}</span><span>est.</span></div>
-        <div style={{width:'1px',height:'14px',background:'var(--border)'}}/>
-        <div className="tc"><span>🏋️</span><span className="tv">{exercises.length}</span><span>exercises</span></div>
-        <div style={{width:'1px',height:'14px',background:'var(--border)'}}/>
-        <div className="tc"><span>📋</span><span className="tv">{totalSets}</span><span>sets</span></div>
-      </div>
-
-      {/* Scrollable content */}
-      <div className="page" style={{paddingBottom:'90px'}}>
-        <div style={{padding:'12px 16px 0'}}>
-          {/* Reopen banner */}
-          {isReopening && (
-            <div style={{background:'rgba(68,255,170,0.08)',border:'1px solid var(--green)',borderLeft:'3px solid var(--green)',padding:'10px 14px',marginBottom:'12px',fontSize:'13px',color:'var(--green)'}}>
-              ✏️ <strong>Editing completed workout</strong> — make your changes and hit Update when done.
-            </div>
-          )}
-
-          {exercises.map((ex, ei) => (
-            <ExerciseCard
-              key={`${ei}-${ex.name}`}
-              exercise={ex} exIdx={ei} sets={sets[ei] || []}
-              onUpdateSet={onUpdateSet} onToggleSet={onToggleSet}
-              onAddSet={onAddSet} onSwap={onSwap} onRemove={onRemove}
-              onFeedback={onFeedback}
-            />
-          ))}
-
-          {/* Add exercise */}
-          <button
-            onClick={onAddExercise}
-            style={{width:'100%',background:'transparent',border:'1px dashed var(--acc)',color:'var(--acc)',padding:'14px',fontFamily:'var(--font-body)',fontSize:'13px',fontWeight:'600',letterSpacing:'1px',textTransform:'uppercase',cursor:'pointer',marginBottom:'16px',marginTop:'4px',transition:'all 0.15s',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px'}}
-            onMouseOver={e=>e.currentTarget.style.background='rgba(232,255,71,0.06)'}
-            onMouseOut={e=>e.currentTarget.style.background='transparent'}
-          >＋ ADD EXERCISE</button>
-
-          {/* Voice */}
-          <div style={{marginBottom:'14px'}}>
-            <button
-              onClick={toggleVoice}
-              disabled={voiceParsing}
-              style={{width:'100%',background:'var(--s1)',border:`1px solid ${voiceActive?'var(--red)':voiceParsing?'var(--acc2)':'var(--border2)'}`,color:voiceActive?'var(--red)':voiceParsing?'var(--acc2)':'var(--muted2)',padding:'14px',fontFamily:'var(--font-body)',fontSize:'13px',fontWeight:'600',letterSpacing:'1px',textTransform:'uppercase',cursor:voiceParsing?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',transition:'all 0.2s'}}
-            >
-              {voiceParsing ? '⏳ LOGGING...' : voiceActive ? '⏹ STOP RECORDING' : '🎙️ LOG WITH VOICE'}
-            </button>
-            {voiceText && (
-              <div style={{background:'var(--s2)',border:'1px solid var(--border)',borderTop:'none',padding:'10px 14px',fontSize:'13px',color: voiceText.startsWith('✓') ? 'var(--green)' : 'var(--muted2)',fontStyle:'italic',lineHeight:'1.5'}}>
-                {voiceText}
-              </div>
-            )}
-          </div>
-
-          {/* Coach tip */}
-          <div className="card card-acc2" style={{marginBottom:'16px'}}>
-            <div className="label-acc" style={{color:'var(--acc2)',marginBottom:'7px'}}>🤖 FORGE COACH</div>
-            {coachLoading ? <div className="thinking"><div className="td"/><div className="td"/><div className="td"/></div>
-              : <div style={{fontSize:'13px',lineHeight:'1.7',color:'#ccc'}}>{coachTip}</div>}
-          </div>
-
-          {/* Finish */}
-          <button className="btn btn-acc2" style={{width:'100%',marginBottom:'24px'}} onClick={onFinish}>
-            {isReopening ? '💾 UPDATE WORKOUT' : '✅ FINISH WORKOUT'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// HISTORY ENTRY DETAIL
-function HistoryEntryDetail({ entry }) {
-  const { loggedSets, exercises, summary, isPrior } = entry;
-
-  // Imported / prior entries — just show the summary text
-  if (isPrior || !exercises || !loggedSets) {
-    return (
-      <div style={{borderTop:'1px solid var(--border)',padding:'12px 16px',background:'var(--s2)'}}>
-        <div style={{fontSize:'13px',color:'#ccc',lineHeight:'1.7',whiteSpace:'pre-wrap'}}>{summary}</div>
-      </div>
-    );
+// ── PWA SETUP ─────────────────────────────────────────────────────────────
+function setupPWA() {
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#080808'; ctx.fillRect(0,0,512,512);
+  ctx.strokeStyle = '#e8ff47'; ctx.lineWidth = 14; ctx.strokeRect(18,18,476,476);
+  ctx.fillStyle = '#e8ff47'; ctx.font = 'bold 140px Arial Black,sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('FORGE', 256, 200);
+  ctx.fillStyle = '#555'; ctx.font = '52px Arial,sans-serif'; ctx.fillText('AI TRAINER', 256, 310);
+  const ic = c.toDataURL('image/png');
+  const ai = document.getElementById('apple-icon'); if (ai) ai.href = ic;
+  const manifest = {name:'FORGE — AI Personal Trainer',short_name:'FORGE',start_url:'.',display:'standalone',background_color:'#080808',theme_color:'#080808',orientation:'portrait',icons:[{src:ic,sizes:'512x512',type:'image/png',purpose:'any maskable'}]};
+  const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+  const pm = document.getElementById('pwa-manifest'); if (pm) pm.href = URL.createObjectURL(blob);
+  if ('serviceWorker' in navigator) {
+    const sw = "const C='forge-r2';self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.add(self.location.href)).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));self.addEventListener('fetch',e=>{if(e.request.url.includes('anthropic.com')||e.request.url.includes('cdnjs')){e.respondWith(fetch(e.request).catch(()=>new Response('',{status:503})));return;}e.respondWith(caches.match(e.request).then(r=>{if(r)return r;return fetch(e.request).then(rs=>{if(rs&&rs.status===200){const cl=rs.clone();caches.open(C).then(ca=>ca.put(e.request,cl));}return rs;}).catch(()=>caches.match(e.request));}));});";
+    const swB = new Blob([sw], {type:'application/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(swB), {scope:'./'}).catch(function(){});
   }
+}
 
-  return (
-    <div style={{borderTop:'1px solid var(--border)',background:'var(--s2)'}}>
-      {exercises.map((ex, ei) => {
-        const sets = loggedSets[ei] || [];
-        const logged = sets.filter(s => s.weight || s.reps || s.done);
-        return (
-          <div key={ei} style={{padding:'10px 16px',borderBottom:'1px solid var(--border)'}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'6px'}}>
-              <div style={{fontWeight:600,fontSize:'13px'}}>{ex.name}</div>
-              {ex.target && (
-                <div style={{fontSize:'11px',color:'var(--green)',fontFamily:'var(--font-mono)'}}>
-                  🎯 {ex.target}
-                </div>
-              )}
-            </div>
-            {logged.length > 0 ? (
-              <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
-                {logged.map((s, si) => (
-                  <div key={si} style={{
-                    background: s.done ? 'rgba(68,255,170,0.1)' : 'var(--s3)',
-                    border: `1px solid ${s.done ? 'rgba(68,255,170,0.3)' : 'var(--border2)'}`,
-                    padding:'4px 10px', fontSize:'12px', fontFamily:'var(--font-mono)',
-                    color: s.done ? 'var(--green)' : 'var(--muted2)',
-                    display:'flex', gap:'4px', alignItems:'center'
-                  }}>
-                    <span style={{color:'var(--muted)',fontSize:'10px'}}>S{si+1}</span>
-                    {s.weight ? <span>{s.weight}lbs</span> : null}
-                    {s.weight && s.reps ? <span style={{color:'var(--border2)'}}>×</span> : null}
-                    {s.reps ? <span>{s.reps} reps</span> : null}
-                    {!s.weight && !s.reps ? <span style={{color:'var(--muted)'}}>—</span> : null}
-                    {s.done && <span style={{fontSize:'10px'}}>✓</span>}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{fontSize:'12px',color:'var(--muted)',fontStyle:'italic'}}>No sets logged</div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+// ── VOICE HELPER ──────────────────────────────────────────────────────────
+async function startVoice(onResult, onEnd, onError) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert('Voice not supported. Use Safari (iOS) or Chrome.'); return null; }
+  try { await navigator.mediaDevices.getUserMedia({audio:true}); } catch(e) { alert('Mic permission denied.'); return null; }
+  const sr = new SR(); sr.continuous = false; sr.interimResults = true; sr.lang = 'en-US';
+  let final = '';
+  sr.onresult = function(e2) {
+    const t = Array.from(e2.results).map(function(r){return r[0].transcript;}).join('');
+    onResult(t);
+    if (e2.results[e2.results.length-1].isFinal) final = t;
+  };
+  sr.onerror = function(ev) { if (onError) onError(ev.error); };
+  sr.onend = function() { if (onEnd) onEnd(final); };
+  try { sr.start(); return sr; } catch(err) { alert('Voice error: ' + err.message); return null; }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// COMPONENTS — all use React.createElement (aliased as e())
+// Shorthand: div(props, ...children) helpers
+// ────────────────────────────────────────────────────────────────────────────
+function div(props) { return e('div', props, ...Array.prototype.slice.call(arguments, 1)); }
+function btn(props) { return e('button', props, ...Array.prototype.slice.call(arguments, 1)); }
+function span(props) { return e('span', props, ...Array.prototype.slice.call(arguments, 1)); }
+
+// ── TOAST ─────────────────────────────────────────────────────────────────
+function Toast(props) {
+  useEffect(function() { const t = setTimeout(props.onDone, 2200); return function(){clearTimeout(t);}; }, []);
+  return div({className:'toast'}, props.msg);
+}
+
+// ── LOADING SCREEN ────────────────────────────────────────────────────────
+function Loading(props) {
+  return div({className:'screen', style:{alignItems:'center',justifyContent:'center'}},
+    div({style:{textAlign:'center',padding:'40px'}},
+      div({className:'disp', style:{fontSize:'52px',color:'var(--acc)',letterSpacing:'6px',marginBottom:'38px'}}, 'FORGE'),
+      div({className:'spin', style:{marginBottom:'18px'}}),
+      div({className:'lbl'}, props.msg || 'Building your plan…')
+    )
   );
 }
 
-// HISTORY SCREEN
-function HistoryScreen({ history }) {
-  const [expanded, setExpanded] = useState(null);
+// ── SETTINGS MODAL ────────────────────────────────────────────────────────
+function Settings(props) {
+  const cur = getKey();
+  const [editing, setEditing] = useState(!cur);
+  const [val, setVal] = useState('');
+  const [testing, setTesting] = useState(false);
+  const [err, setErr] = useState('');
+  const [ok, setOk] = useState(false);
 
-  if (!history.length) return (
-    <div className="screen">
-      <div style={{padding:'52px 20px 16px'}}>
-        <div className="label" style={{marginBottom:'3px'}}>Your</div>
-        <div className="display" style={{fontSize:'44px'}}>HISTORY</div>
-      </div>
-      <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:'12px',color:'var(--muted2)',padding:'40px',textAlign:'center'}}>
-        <div style={{fontSize:'40px'}}>📋</div>
-        <p style={{fontSize:'14px',lineHeight:'1.6'}}>No workouts logged yet.<br/>Complete your first session to see history here.</p>
-      </div>
-    </div>
+  const save = async function() {
+    const k = val.trim();
+    if (!k.startsWith('sk-ant-')) { setErr('Key must start with sk-ant-…'); return; }
+    setTesting(true); setErr(''); saveKey(k);
+    try {
+      await callAI([{role:'user',content:'Say: ready'}], 10);
+      setOk(true); props.onSaved(k);
+      setTimeout(function(){ setOk(false); setEditing(false); setVal(''); }, 1200);
+    } catch(e2) { setErr(e2.message); saveKey(cur||''); }
+    setTesting(false);
+  };
+
+  return div({className:'mb', onClick:function(ev){if(ev.target===ev.currentTarget)props.onClose();}},
+    div({className:'ms'},
+      div({className:'disp', style:{fontSize:'24px',marginBottom:'16px'}}, '⚙ SETTINGS'),
+      div({style:{background:'var(--s2)',border:'1px solid var(--border)',padding:'14px',marginBottom:'13px'}},
+        div({style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'8px'}},
+          div({className:'lbl'}, 'Anthropic API Key'),
+          cur && !editing && span({style:{fontSize:'11px',color:'var(--green)'}}, '✓ Connected')
+        ),
+        !editing ? [
+          div({key:'k1', style:{fontFamily:'monospace',fontSize:'13px',color:'var(--muted2)',padding:'8px 10px',background:'var(--bg)',border:'1px solid var(--border)',marginBottom:'9px'}}, '••••••••' + cur.slice(-8)),
+          btn({key:'k2', className:'btn bg', style:{width:'100%'}, onClick:function(){setEditing(true);}}, 'CHANGE KEY')
+        ] : [
+          e('input', {key:'k3', className:'inp', type:'password', value:val, placeholder:'sk-ant-api03-…', onInput:function(ev){setVal(ev.target.value);setErr('');}, onKeyDown:function(ev){if(ev.key==='Enter')save();}, style:{marginBottom:'7px'}, autoFocus:true}),
+          err && div({key:'k4', style:{color:'var(--red)',fontSize:'12px',marginBottom:'6px'}}, err),
+          ok && div({key:'k5', style:{color:'var(--green)',fontSize:'12px',marginBottom:'6px'}}, '✓ Verified!'),
+          div({key:'k6', style:{display:'flex',gap:'7px'}},
+            cur && btn({key:'kc', className:'btn bg', style:{flex:1}, onClick:function(){setEditing(false);setVal('');setErr('');}}, 'CANCEL'),
+            btn({key:'ks', className:'btn ba', style:{flex:2}, disabled:!val.trim()||testing, onClick:save}, testing ? 'VERIFYING…' : 'SAVE →')
+          )
+        ]
+      ),
+      div({style:{fontSize:'12px',color:'var(--muted2)',lineHeight:'1.7',marginBottom:'14px'}},
+        'Get key at ', e('strong', {style:{color:'var(--acc)'}}, 'console.anthropic.com'), ' → API Keys.', e('br'),
+        'Stored only on this device. ~$0.05–0.10/week.'
+      ),
+      btn({className:'btn bg', style:{width:'100%'}, onClick:props.onClose}, 'CLOSE')
+    )
   );
+}
 
-  const toggleExpand = (i) => setExpanded(prev => prev === i ? null : i);
-  const reversed = [...history].reverse();
+// ── SPLASH ────────────────────────────────────────────────────────────────
+function Splash(props) {
+  return div({className:'screen', style:{alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}},
+    div({style:{position:'absolute',inset:0,background:'radial-gradient(ellipse at 25% 60%,rgba(232,255,71,.07),transparent 55%),radial-gradient(ellipse at 80% 20%,rgba(255,107,53,.07),transparent 50%)'}}),
+    div({style:{position:'relative',textAlign:'center',padding:'38px 30px',zIndex:1}},
+      div({style:{fontSize:'clamp(78px,23vw,136px)',fontWeight:900,letterSpacing:'10px',color:'var(--acc)',lineHeight:1,marginBottom:'5px'}}, 'FORGE'),
+      div({className:'lbl', style:{marginBottom:'48px'}}, 'AI Personal Trainer'),
+      div({style:{display:'flex',flexDirection:'column',gap:'10px',alignItems:'center'}},
+        btn({className:'btn ba', style:{width:'210px'}, onClick:function(){props.onStart(false);}}, props.hasData ? 'CONTINUE TRAINING' : 'GET STARTED'),
+        props.hasData && btn({className:'btn bg', style:{width:'210px'}, onClick:function(){if(confirm('Reset all data?'))props.onStart(true);}}, 'RESET & RESTART'),
+        btn({className:'btn bg', style:{width:'210px',marginTop:'5px'}, onClick:props.onSettings}, '🔑 API KEY SETTINGS')
+      )
+    )
+  );
+}
 
-  return (
-    <div className="screen">
-      <div style={{padding:'52px 20px 16px',flexShrink:0}}>
-        <div className="label" style={{marginBottom:'3px'}}>Your</div>
-        <div className="display" style={{fontSize:'44px'}}>HISTORY</div>
-      </div>
-      <div className="page" style={{padding:'0 20px'}}>
-        {reversed.map((h, i) => {
-          const isOpen = expanded === i;
-          const hasDetail = h.isPrior || (h.exercises?.length > 0);
-          return (
-            <div key={i} style={{background:'var(--s1)',border:'1px solid var(--border)',marginBottom:'8px',overflow:'hidden'}}>
-              {/* Header row */}
-              <div
-                style={{padding:'14px 16px',cursor: hasDetail ? 'pointer' : 'default'}}
-                onClick={() => hasDetail && toggleExpand(i)}
-              >
-                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'8px'}}>
-                  <div style={{flex:1}}>
-                    <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'4px',flexWrap:'wrap'}}>
-                      <span className="label">{h.date}{h.week > 0 ? ` · Week ${h.week}` : ''}</span>
-                      {h.isPrior && <span className="chip chip-acc2">IMPORTED</span>}
-                    </div>
-                    <div style={{fontWeight:700,fontSize:'15px',marginBottom:'3px'}}>{h.workoutName}</div>
-                    <div style={{fontSize:'12px',color:'var(--muted2)'}}>{h.focus ? h.focus+' · ' : ''}{h.summary}</div>
-                  </div>
-                  {hasDetail && (
-                    <div style={{color:'var(--muted2)',fontSize:'14px',transition:'transform 0.2s',transform:isOpen?'rotate(180deg)':'none',flexShrink:0,marginTop:'2px'}}>▼</div>
-                  )}
-                </div>
+// ── ONBOARDING ────────────────────────────────────────────────────────────
+const OB_STEPS = [["WHAT'S YOUR GOAL?","Choose your objective"],["EXPERIENCE LEVEL","How long training?"],["DAYS PER WEEK","How many days?"],["EQUIPMENT","What do you have?"],["FINAL DETAILS","Almost done"]];
+const OB_GOALS = [['💪','Build Muscle'],['🔥','Lose Fat'],['🏋️','Build Strength'],['🏃','Improve Endurance']];
+const OB_EXP = [['🌱','Beginner (0-1 yrs)'],['📈','Intermediate (1-3 yrs)'],['🔱','Advanced (3+ yrs)']];
+const OB_DAYS = [['2️⃣','2 days'],['3️⃣','3 days'],['4️⃣','4 days'],['5️⃣','5 days'],['6️⃣','6 days'],['🔄','4-5 flexible']];
+const OB_EQ = [['🏪','Full Gym'],['🏠','Home + Dumbbells']];
 
-                {/* Exercise count chips */}
-                {h.exercises?.length > 0 && (
-                  <div style={{display:'flex',gap:'6px',marginTop:'8px',flexWrap:'wrap'}}>
-                    {h.exercises.map((ex, ei) => {
-                      const sets = h.loggedSets?.[ei] || [];
-                      const doneSets = sets.filter(s => s.done || s.reps || s.weight).length;
-                      return (
-                        <div key={ei} style={{fontSize:'11px',padding:'3px 8px',background:'var(--s2)',border:'1px solid var(--border2)',color: doneSets > 0 ? 'var(--muted2)' : 'var(--muted)',fontFamily:'var(--font-mono)'}}>
-                          {ex.name.length > 18 ? ex.name.slice(0,16)+'…' : ex.name} · {doneSets}/{sets.length}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+function Onboarding(props) {
+  const [step, setStep] = useState(0);
+  const [d, setD] = useState({});
+  const sel = function(k, v) { setD(function(p){ return Object.assign({}, p, {[k]:v}); }); };
+  const canNext = function() {
+    if (step===0) return !!d.goal; if (step===1) return !!d.experience;
+    if (step===2) return !!d.days; if (step===3) return !!d.equipment; return true;
+  };
+  const next = function() {
+    if (step < 4) { setStep(function(s){return s+1;}); return; }
+    props.onComplete({name:d.name&&d.name.trim()||'Athlete',goal:d.goal,experience:d.experience,days:d.days,equipment:d.equipment,split:d.split||'',notes:d.notes||''});
+  };
 
-              {/* Expanded detail */}
-              {isOpen && <HistoryEntryDetail entry={h}/>}
-            </div>
+  const mkBtn = function(ic, v, k2, extra) {
+    const cls = 'cb' + (extra || '') + (d[k2]===v?' sel':'');
+    return btn({key:v, className:cls, onClick:function(){sel(k2,v);}}, e('span',{className:'ci'},ic), v);
+  };
+
+  return div({className:'screen'},
+    div({style:{padding:'50px 20px 0',flexShrink:0}},
+      div({className:'dots'}, OB_STEPS.map(function(_,i){ return div({key:i, className:'dot'+(i<step?' on':'')});})),
+      div({className:'disp', style:{marginBottom:'4px'}}, OB_STEPS[step][0]),
+      div({className:'lbl', style:{marginBottom:'22px'}}, OB_STEPS[step][1])
+    ),
+    div({className:'page', style:{padding:'0 20px 95px'}},
+      step===0 && div({className:'cg2'},
+        OB_GOALS.map(function(x){return mkBtn(x[0],x[1],'goal');}),
+        mkBtn('⚡','General Fitness','goal',' csp')
+      ),
+      step===1 && div({className:'cg2'}, OB_EXP.map(function(x){return mkBtn(x[0],x[1],'experience',' csp');})),
+      step===2 && div({className:'cg2'},
+        OB_DAYS.map(function(x){return mkBtn(x[0],x[1],'days');}),
+        mkBtn('🎲','Not sure','days',' csp')
+      ),
+      step===3 && div({className:'cg2'},
+        OB_EQ.map(function(x){return mkBtn(x[0],x[1],'equipment');}),
+        mkBtn('🧘','Bodyweight Only','equipment',' csp')
+      ),
+      step===4 && div({},
+        div({style:{marginBottom:'12px'}},
+          div({className:'lbl',style:{marginBottom:'5px'}},'Your name'),
+          e('input',{className:'inp',value:d.name||'',onInput:function(ev){sel('name',ev.target.value);},placeholder:'e.g. Alex'})
+        ),
+        div({style:{marginBottom:'12px'}},
+          div({className:'lbl',style:{marginBottom:'5px'}},
+            'Preferred split ',
+            e('span',{style:{color:'var(--muted)',fontStyle:'italic'}},'(optional)')
+          ),
+          e('input',{className:'inp',value:d.split||'',onInput:function(ev){sel('split',ev.target.value);},placeholder:'e.g. 2 upper/2 lower, Push Pull Legs, or leave blank'}),
+          div({style:{fontSize:'11px',color:'var(--muted)',marginTop:'3px'}},'AI follows your split exactly.')
+        ),
+        div({},
+          div({className:'lbl',style:{marginBottom:'5px'}},'Feeling / injuries?'),
+          e('textarea',{className:'inp',value:d.notes||'',onInput:function(ev){sel('notes',ev.target.value);},placeholder:'e.g. Feeling good! Bad shoulder, avoid heavy overhead.'})
+        )
+      )
+    ),
+    div({style:{position:'absolute',bottom:0,left:0,right:0,padding:'11px 20px 28px',background:'linear-gradient(transparent,var(--bg) 40%)'}},
+      div({style:{display:'flex',gap:'8px'}},
+        step>0 && btn({className:'btn bg',style:{flex:'0 0 74px'},onClick:function(){setStep(function(s){return s-1;});}}, '← BACK'),
+        btn({className:'btn ba',style:{flex:1},disabled:!canNext(),onClick:next}, step===4 ? 'BUILD MY PLAN →' : 'NEXT →')
+      )
+    )
+  );
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────
+function Dashboard(props) {
+  const {st, onW, onChat, onMissed, onSettings} = props;
+  const {profile:p, weekPlan:pl, weekNum:wn, history:hist} = st;
+  if (!p || !pl) return null;
+  const td = tday();
+  const isDone = function(i) { return hist.some(function(h){return h.dayIndex===i&&h.week===wn&&!h.isPrior;}); };
+
+  return div({className:'screen'},
+    div({className:'page', style:{paddingBottom:'calc(60px + var(--safe))'}},
+      div({style:{padding:'48px 19px 13px',background:'linear-gradient(180deg,var(--s1),transparent)',position:'relative'}},
+        btn({onClick:onSettings, style:{position:'absolute',top:'48px',right:'17px',background:'var(--s2)',border:'1px solid var(--border2)',color:'var(--muted2)',padding:'5px 11px',cursor:'pointer',fontSize:'12px',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',fontFamily:'inherit',transition:'all .15s'},
+          onMouseOver:function(ev){ev.currentTarget.style.borderColor='var(--acc)';ev.currentTarget.style.color='var(--acc)';},
+          onMouseOut:function(ev){ev.currentTarget.style.borderColor='var(--border2)';ev.currentTarget.style.color='var(--muted2)';}
+        }, '⚙ SETTINGS'),
+        div({className:'lbl',style:{marginBottom:'2px'}}, 'Welcome back,'),
+        div({className:'disp',style:{fontSize:'clamp(36px,11vw,54px)',color:'var(--acc)'}}, p.name.toUpperCase()),
+        div({style:{fontSize:'13px',color:'var(--muted2)',marginTop:'3px'}}, 'Week ' + wn + ' · ' + pl.weekTheme),
+        p.split && div({style:{fontSize:'12px',color:'var(--muted2)',marginTop:'2px'}}, e('span',{style:{color:'var(--acc2)'}},'⚡'), ' ' + p.split)
+      ),
+      div({style:{padding:'0 19px 18px'}},
+        div({className:'sh'}, 'This Week'),
+        pl.days.map(function(day, idx) {
+          const it = day.dayName===td, dn = isDone(idx), ir = day.isRest;
+          let cls = 'dc'; if(it&&!dn) cls+=' td_'; if(dn) cls+=' dn'; if(ir) cls+=' rs';
+          return div({key:idx, style:{marginBottom:'8px'}},
+            div({className:cls, style:{cursor:ir?'default':'pointer'}, onClick:function(){if(!ir&&!dn)onW(idx,false);}},
+              div({className:'disp',style:{fontSize:'22px',minWidth:'34px',color:dn?'var(--green)':'var(--acc)'}}, day.dayName.slice(0,3).toUpperCase()),
+              div({style:{flex:1}},
+                div({style:{fontWeight:700,fontSize:'14px'}}, day.workoutName),
+                div({style:{fontSize:'12px',color:'var(--muted2)',marginTop:'1px'}}, ir ? 'Rest & Recovery' : day.focus + (day.duration?' · '+day.duration:''))
+              ),
+              dn && span({className:'chip cg'}, '✓ DONE'),
+              !dn&&it&&!ir && span({className:'chip ca'}, 'TODAY'),
+              ir && span({className:'chip cm'}, 'REST')
+            ),
+            dn && btn({className:'reb', onClick:function(){onW(idx,true);}}, '✏️ EDIT / REOPEN WORKOUT')
           );
-        })}
-      </div>
-    </div>
+        })
+      ),
+      div({style:{padding:'0 19px 13px'}},
+        div({className:'sh'}, 'Coach Insight'),
+        div({className:'card', style:{borderLeft:'3px solid var(--acc)',fontSize:'13px',lineHeight:'1.7',color:'#ccc'}}, pl.insight)
+      ),
+      div({style:{padding:'0 19px 28px'}},
+        btn({className:'btn bg', style:{width:'100%'}, onClick:onMissed}, '⚠️ MISSED DAYS? TELL YOUR COACH')
+      )
+    ),
+    btn({onClick:onChat, style:{position:'absolute',bottom:'calc(68px + var(--safe))',right:'17px',width:'48px',height:'48px',background:'var(--acc)',border:'none',borderRadius:'50%',fontSize:'20px',cursor:'pointer',boxShadow:'0 4px 16px rgba(232,255,71,.25)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50}}, '🤖')
   );
 }
 
-// IMPORT PRIOR HISTORY
-function ImportScreen({ profile, onImported }) {
+// ── SET ROW ───────────────────────────────────────────────────────────────
+function SRow(props) {
+  const {set, si, ei, onU, onT} = props;
+  return div({className:'sr'},
+    span({style:{fontSize:'11px',color:'var(--muted2)',minWidth:'16px',fontFamily:'monospace'}}, si+1),
+    e('input',{className:'si',type:'number',placeholder:'lbs',value:set.weight,onInput:function(ev){onU(ei,si,'weight',ev.target.value);}}),
+    e('input',{className:'si',type:'number',placeholder:'reps',value:set.reps,onInput:function(ev){onU(ei,si,'reps',ev.target.value);}}),
+    btn({className:'sd'+(set.done?' on':''),onClick:function(){onT(ei,si);}}, set.done?'✓':'○')
+  );
+}
+
+// ── EXERCISE CARD ─────────────────────────────────────────────────────────
+function ExCard(props) {
+  const {ex, ei, sets, onU, onT, onAS, onSwap, onRm, onFb} = props;
+  const [open, setOpen] = useState(false);
+  const [cRm, setCRm] = useState(false);
+  const [showFb, setShowFb] = useState(false);
+  const [fbLoad, setFbLoad] = useState(false);
+  const FB = [['😓','Too heavy'],['😴','Fatigued'],['😌','Too easy'],['🤕','Pain'],['✅','Perfect']];
+
+  const doFb = async function(reason) {
+    setShowFb(false); setFbLoad(true);
+    const done = sets.filter(function(s){return s.weight||s.reps;});
+    try {
+      const txt = await callAI([{role:'user',content:'Exercise: '+ex.name+'. Prescribed: '+ex.sets+'x'+ex.reps+(ex.target?' target:'+ex.target:'')+'. Logged: '+(done.map(function(s){return (s.weight||'?')+'x'+(s.reps||'?');}).join(', ')||'none')+'. Feedback: "'+reason+'". Adjust remaining '+(ex.sets-done.length)+' sets. JSON: {"adjustedSets":[{"weight":135,"reps":8}],"message":"one sentence"}'}], 200);
+      const res = jparse(txt);
+      if (res.adjustedSets && res.adjustedSets.length) onFb(ei, done.length, res.adjustedSets, res.message);
+    } catch(e2) { console.error(e2); }
+    setFbLoad(false);
+  };
+
+  const swapBtn = btn({key:'sw', onClick:function(ev){ev.stopPropagation();onSwap(ei);}, style:{background:'transparent',border:'1px solid var(--border2)',color:'var(--muted2)',padding:'4px 7px',fontSize:'11px',cursor:'pointer',fontFamily:'inherit',letterSpacing:'1px',textTransform:'uppercase',marginRight:'4px',flexShrink:0,transition:'all .15s'},
+    onMouseOver:function(ev){ev.currentTarget.style.borderColor='var(--acc2)';ev.currentTarget.style.color='var(--acc2)';},
+    onMouseOut:function(ev){ev.currentTarget.style.borderColor='var(--border2)';ev.currentTarget.style.color='var(--muted2)';} }, '⇄');
+
+  const rmBtn = btn({key:'rm', onClick:function(ev){ev.stopPropagation();setCRm(function(v){return !v;});}, style:{background:'transparent',border:'none',color:'var(--muted2)',fontSize:'17px',cursor:'pointer',padding:'0 2px',lineHeight:1,flexShrink:0,transition:'color .15s'},
+    onMouseOver:function(ev){ev.currentTarget.style.color='var(--red)';},
+    onMouseOut:function(ev){ev.currentTarget.style.color='var(--muted2)';} }, '✕');
+
+  return div({className:'ec'},
+    div({className:'eh', onClick:function(){setOpen(function(o){return !o;});}},
+      div({style:{flex:1}},
+        div({style:{fontWeight:700,fontSize:'14px'}}, ex.name),
+        div({style:{fontSize:'12px',color:'var(--muted2)',marginTop:'2px'}}, ex.sets + ' sets × ' + ex.reps + ' · Rest ' + ex.rest)
+      ),
+      swapBtn, rmBtn,
+      div({style:{marginLeft:'5px',color:'var(--muted2)',fontSize:'13px',transform:open?'rotate(180deg)':'none',transition:'transform .2s',flexShrink:0}}, '▼')
+    ),
+    ex.target && div({className:'tbar'},
+      span({}, '🎯'),
+      div({style:{flex:1}},
+        span({className:'lbl',style:{color:'var(--green)',marginRight:'5px'}}, 'TARGET'),
+        span({style:{fontSize:'13px',color:'#ccc',fontFamily:'monospace'}}, ex.target)
+      ),
+      btn({className:'fbb', onClick:function(ev){ev.stopPropagation();setShowFb(function(v){return !v;});}}, fbLoad?'…':'💬 FEEDBACK')
+    ),
+    !ex.target && div({style:{padding:'4px 13px',borderTop:'1px solid var(--border)'}},
+      btn({style:{background:'transparent',border:'none',color:'var(--muted2)',fontSize:'12px',cursor:'pointer',fontFamily:'inherit',letterSpacing:'1px',textTransform:'uppercase',padding:'3px 0',transition:'color .15s'},
+        onMouseOver:function(ev){ev.currentTarget.style.color='var(--acc)';},
+        onMouseOut:function(ev){ev.currentTarget.style.color='var(--muted2)';},
+        onClick:function(){setShowFb(function(v){return !v;});}
+      }, fbLoad ? '⏳ Adjusting…' : '💬 How does this feel?')
+    ),
+    showFb && div({style:{borderTop:'1px solid var(--border)',padding:'9px 13px',background:'var(--s2)'}},
+      div({className:'lbl',style:{marginBottom:'7px'}}, 'How did this feel?'),
+      FB.map(function(x){ return btn({key:x[1], className:'fbo', onClick:function(){doFb(x[1]);}}, x[0]+' '+x[1]); })
+    ),
+    cRm && div({style:{background:'rgba(255,68,85,.08)',borderTop:'1px solid var(--red)',padding:'8px 13px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'7px'}},
+      span({style:{fontSize:'13px',color:'#ff8888'}}, 'Remove ', e('strong',{},ex.name), '?'),
+      div({style:{display:'flex',gap:'6px'}},
+        btn({className:'btn bg', style:{padding:'4px 9px',fontSize:'12px'}, onClick:function(){setCRm(false);}}, 'CANCEL'),
+        btn({style:{background:'var(--red)',border:'none',color:'#fff',padding:'4px 11px',fontSize:'12px',cursor:'pointer',fontWeight:700,fontFamily:'inherit'}, onClick:function(){onRm(ei);}}, 'REMOVE')
+      )
+    ),
+    open && div({style:{borderTop:'1px solid var(--border)',padding:'12px'}},
+      div({style:{fontSize:'12px',color:'var(--muted2)',marginBottom:'9px',fontStyle:'italic'}}, ex.notes),
+      div({style:{display:'flex',gap:'7px',marginBottom:'6px'}},
+        div({className:'lbl',style:{flex:1,textAlign:'center'}}, 'WEIGHT'),
+        div({className:'lbl',style:{flex:1,textAlign:'center'}}, 'REPS'),
+        div({style:{width:'30px'}})
+      ),
+      sets.map(function(s,si){ return e(SRow,{key:si,set:s,si:si,ei:ei,onU:onU,onT:onT}); }),
+      btn({onClick:function(){onAS(ei);}, style:{width:'100%',background:'transparent',border:'1px dashed var(--border2)',color:'var(--muted2)',padding:'6px',fontSize:'12px',cursor:'pointer',fontFamily:'inherit',letterSpacing:'1px',textTransform:'uppercase',marginTop:'3px',transition:'all .15s'},
+        onMouseOver:function(ev){ev.currentTarget.style.borderColor='var(--acc)';ev.currentTarget.style.color='var(--acc)';},
+        onMouseOut:function(ev){ev.currentTarget.style.borderColor='var(--border2)';ev.currentTarget.style.color='var(--muted2)';}
+      }, '+ ADD SET')
+    )
+  );
+}
+
+// ── WORKOUT SCREEN ────────────────────────────────────────────────────────
+function WorkoutScreen(props) {
+  const {dayIdx, plan, profile, sets, isRe, onU, onT, onAS, onSwap, onRm, onAddEx, onFinish, onBack, onVL, onFb, tip, tipLoad} = props;
+  const day = plan.days[dayIdx], exs = day.exercises;
+  const [von, setVon] = useState(false);
+  const [vtxt, setVtxt] = useState('');
+  const [vparsing, setVparsing] = useState(false);
+  const srRef = useRef(null);
+  const mins = useMemo(function(){return emins(exs);}, [exs]);
+  const totalSets = useMemo(function(){return exs.reduce(function(a,ex){return a+(ex.sets||3);},0);}, [exs]);
+
+  const parseV = async function(transcript) {
+    setVparsing(true); setVtxt('Logging: "' + transcript + '"');
+    try {
+      const txt = await callAI([{role:'user',content:'Parse voice log. Voice: "'+transcript+'". Exercises: '+exs.map(function(ex,i){return i+':'+ex.name;}).join(', ')+'. JSON: {"exerciseIndex":0,"sets":[{"weight":135,"reps":8}]}'}], 200);
+      const res = jparse(txt);
+      if (res.exerciseIndex >= 0 && res.sets && res.sets.length) {
+        onVL(res.exerciseIndex, res.sets);
+        setVtxt('✓ Logged ' + res.sets.length + ' sets for ' + (exs[res.exerciseIndex]&&exs[res.exerciseIndex].name));
+      } else { setVtxt('Could not match — log manually.'); }
+    } catch(e2) { setVtxt('Error: ' + e2.message); }
+    setVparsing(false);
+  };
+
+  const togV = async function() {
+    if (von) { srRef.current && srRef.current.stop(); setVon(false); return; }
+    const sr = await startVoice(function(t){setVtxt(t);}, function(final){setVon(false);if(final&&final.trim())parseV(final.trim());}, function(){setVon(false);});
+    if (sr) { srRef.current = sr; setVon(true); setVtxt('Listening… say e.g. "bench 3 sets of 8 at 185"'); }
+  };
+
+  return div({className:'screen'},
+    div({style:{background:'var(--s1)',borderBottom:'1px solid var(--border)',padding:'48px 19px 12px',flexShrink:0}},
+      btn({className:'btn bg', style:{padding:'4px 10px',fontSize:'12px',marginBottom:'10px'}, onClick:onBack}, '← BACK'),
+      div({className:'disp', style:{fontSize:'clamp(28px,8vw,42px)'}}, day.workoutName.toUpperCase()),
+      div({style:{fontSize:'13px',color:'var(--muted2)',marginTop:'2px'}}, day.focus)
+    ),
+    div({className:'tb', style:{flexShrink:0}},
+      div({className:'tc'}, span({},'⏱'), span({className:'tv'}, '~'+fmins(mins)), span({},' est.')),
+      span({style:{width:'1px',height:'13px',background:'var(--border)'}}),
+      div({className:'tc'}, span({},'🏋️'), span({className:'tv'}, exs.length), span({}, ' exercises')),
+      span({style:{width:'1px',height:'13px',background:'var(--border)'}}),
+      div({className:'tc'}, span({},'📋'), span({className:'tv'}, totalSets), span({}, ' sets'))
+    ),
+    div({className:'page', style:{paddingBottom:'75px'}},
+      div({style:{padding:'10px 15px 0'}},
+        isRe && div({className:'ibd'}, '✏️ ', e('strong',{}, 'Editing completed workout'), ' — make changes then Update.'),
+        exs.map(function(ex,ei){ return e(ExCard,{key:ei+'-'+ex.name,ex:ex,ei:ei,sets:sets[ei]||[],onU:onU,onT:onT,onAS:onAS,onSwap:onSwap,onRm:onRm,onFb:onFb}); }),
+        btn({onClick:onAddEx, style:{width:'100%',background:'transparent',border:'1px dashed var(--acc)',color:'var(--acc)',padding:'12px',fontFamily:'inherit',fontSize:'13px',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',cursor:'pointer',marginBottom:'12px',marginTop:'3px',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',transition:'all .15s'},
+          onMouseOver:function(ev){ev.currentTarget.style.background='rgba(232,255,71,.05)';},
+          onMouseOut:function(ev){ev.currentTarget.style.background='transparent';}
+        }, '＋ ADD EXERCISE'),
+        div({style:{marginBottom:'12px'}},
+          btn({onClick:togV, disabled:vparsing, style:{width:'100%',background:'var(--s1)',border:'1px solid '+(von?'var(--red)':vparsing?'var(--acc2)':'var(--border2)'),color:von?'var(--red)':vparsing?'var(--acc2)':'var(--muted2)',padding:'12px',fontFamily:'inherit',fontSize:'13px',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',cursor:vparsing?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',transition:'all .2s'}},
+            vparsing ? '⏳ LOGGING…' : von ? '⏹ STOP RECORDING' : '🎙️ LOG WITH VOICE'
+          ),
+          vtxt && div({style:{background:'var(--s2)',border:'1px solid var(--border)',borderTop:'none',padding:'8px 12px',fontSize:'13px',color:vtxt.startsWith('✓')?'var(--green)':'var(--muted2)',fontStyle:'italic',lineHeight:'1.4'}}, vtxt)
+        ),
+        div({className:'card', style:{borderLeft:'3px solid var(--acc2)',marginBottom:'13px'}},
+          div({className:'lbl', style:{color:'var(--acc2)',marginBottom:'5px'}}, '🤖 FORGE COACH'),
+          tipLoad ? div({className:'tkg'}, div({className:'td2'}), div({className:'td2'}), div({className:'td2'})) :
+            div({style:{fontSize:'13px',lineHeight:'1.7',color:'#ccc'}}, tip)
+        ),
+        btn({className:'btn ba2', style:{width:'100%',marginBottom:'18px'}, onClick:onFinish}, isRe ? '💾 UPDATE WORKOUT' : '✅ FINISH WORKOUT')
+      )
+    )
+  );
+}
+
+// ── HISTORY SCREEN ────────────────────────────────────────────────────────
+function HistoryScreen(props) {
+  const {history} = props;
+  const [exp, setExp] = useState(null);
+
+  if (!history || !history.length) return div({className:'screen'},
+    div({style:{padding:'48px 19px 13px'}}, div({className:'lbl',style:{marginBottom:'2px'}},'Your'), div({className:'disp'},'HISTORY')),
+    div({style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:'11px',color:'var(--muted2)',padding:'38px',textAlign:'center'}},
+      div({style:{fontSize:'38px'}}, '📋'),
+      e('p',{style:{fontSize:'14px',lineHeight:'1.6'}}, 'No workouts logged yet.', e('br'), 'Complete a session to see history.')
+    )
+  );
+
+  const rev = history.slice().reverse();
+  return div({className:'screen'},
+    div({style:{padding:'48px 19px 13px',flexShrink:0}}, div({className:'lbl',style:{marginBottom:'2px'}},'Your'), div({className:'disp'},'HISTORY')),
+    div({className:'page', style:{padding:'0 19px'}},
+      rev.map(function(hh, i) {
+        const open = exp===i, hasD = !!(hh.isPrior || (hh.exercises&&hh.exercises.length));
+        return div({key:i, className:'hc'},
+          div({style:{padding:'12px 14px',cursor:hasD?'pointer':'default'}, onClick:function(){if(hasD)setExp(exp===i?null:i);}},
+            div({style:{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'7px'}},
+              div({style:{flex:1}},
+                div({style:{display:'flex',alignItems:'center',gap:'6px',marginBottom:'3px',flexWrap:'wrap'}},
+                  span({className:'lbl'}, hh.date + (hh.week>0?' · Week '+hh.week:'')),
+                  hh.isPrior && span({className:'chip ca2'}, 'IMPORTED')
+                ),
+                div({style:{fontWeight:700,fontSize:'15px',marginBottom:'2px'}}, hh.workoutName),
+                div({style:{fontSize:'12px',color:'var(--muted2)'}}, (hh.focus?hh.focus+' · ':'')+hh.summary)
+              ),
+              hasD && div({style:{color:'var(--muted2)',fontSize:'13px',transform:open?'rotate(180deg)':'none',transition:'transform .2s',flexShrink:0,marginTop:'1px'}}, '▼')
+            ),
+            hh.exercises && hh.exercises.length && div({style:{display:'flex',gap:'4px',marginTop:'7px',flexWrap:'wrap'}},
+              hh.exercises.map(function(ex,ei){
+                const s = (hh.loggedSets&&hh.loggedSets[ei]) || [];
+                const dn = s.filter(function(x){return x.done||x.reps||x.weight;}).length;
+                return span({key:ei, style:{fontSize:'11px',padding:'2px 6px',background:'var(--s2)',border:'1px solid var(--border2)',color:'var(--muted2)',fontFamily:'monospace'}},
+                  (ex.name.length>15?ex.name.slice(0,13)+'…':ex.name)+' '+dn+'/'+s.length
+                );
+              })
+            )
+          ),
+          open && div({style:{borderTop:'1px solid var(--border)',background:'var(--s2)'}},
+            (hh.isPrior || !hh.exercises) ?
+              div({style:{padding:'11px 14px',fontSize:'13px',color:'#ccc',lineHeight:'1.7',whiteSpace:'pre-wrap'}}, hh.summary) :
+              hh.exercises.map(function(ex,ei){
+                const s = (hh.loggedSets&&hh.loggedSets[ei]) || [];
+                const logged = s.filter(function(x){return x.weight||x.reps||x.done;});
+                return div({key:ei, style:{padding:'8px 14px',borderBottom:'1px solid var(--border)'}},
+                  div({style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'4px'}},
+                    div({style:{fontWeight:700,fontSize:'13px'}}, ex.name),
+                    ex.target && span({style:{fontSize:'11px',color:'var(--green)',fontFamily:'monospace'}}, '🎯 '+ex.target)
+                  ),
+                  logged.length ?
+                    div({}, logged.map(function(sv,si){
+                      return span({key:si, className:'sp'+(sv.done?' dn':'')},
+                        span({style:{color:'var(--muted)',fontSize:'10px'}}, 'S'+(si+1)+' '),
+                        sv.weight && span({},sv.weight+'lbs'),
+                        sv.weight&&sv.reps && ' × ',
+                        sv.reps && span({},sv.reps),
+                        !sv.weight&&!sv.reps && span({style:{color:'var(--muted)'}}, '—'),
+                        sv.done && span({style:{fontSize:'10px'}}, ' ✓')
+                      );
+                    })) :
+                    span({style:{fontSize:'12px',color:'var(--muted)',fontStyle:'italic'}}, 'No sets logged')
+                );
+              })
+          )
+        );
+      })
+    )
+  );
+}
+
+// ── IMPORT SCREEN ─────────────────────────────────────────────────────────
+function ImportScreen(props) {
+  const {profile, onImported} = props;
   const [tab, setTab] = useState('free');
-  const [freeText, setFreeText] = useState('');
-  const [sessions, setSessions] = useState([]);
+  const [ft, setFt] = useState('');
+  const [sess, setSess] = useState([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState('');
-  const [voiceActive, setVoiceActive] = useState(false);
+  const [von, setVon] = useState(false);
   const srRef = useRef(null);
 
-  const toggleVoice = async () => {
-    if (voiceActive) { srRef.current?.stop(); setVoiceActive(false); return; }
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert('Voice not supported. Use Safari on iOS or Chrome on Android.'); return; }
-    try { await navigator.mediaDevices.getUserMedia({ audio: true }); }
-    catch { alert('Microphone access denied. Allow mic access in browser settings.'); return; }
-    const sr = new SR();
-    sr.continuous = true; // keep listening until stopped — good for describing workouts
-    sr.interimResults = true; sr.lang = 'en-US';
-    sr.onresult = e => {
-      const transcript = Array.from(e.results).map(r => r[0].transcript).join(' ');
-      setFreeText(transcript);
-    };
-    sr.onerror = e => { console.error('SR error:', e.error); setVoiceActive(false); };
-    sr.onend = () => setVoiceActive(false);
-    srRef.current = sr;
-    try { sr.start(); setVoiceActive(true); }
-    catch(err) { alert('Could not start voice: ' + err.message); }
+  const togV = async function() {
+    if (von) { srRef.current && srRef.current.stop(); setVon(false); return; }
+    const sr = await startVoice(
+      function(t){setFt(function(p){return p+' '+t;});},
+      function(){setVon(false);},
+      function(){setVon(false);}
+    );
+    if (sr) { sr.continuous = true; srRef.current = sr; setVon(true); }
   };
 
-  const addSession = () => setSessions(s => [...s, { id: Date.now(), date: '', name: '', notes: '' }]);
-  const updateSession = (id, key, val) => setSessions(s => s.map(x => x.id === id ? { ...x, [key]: val } : x));
-  const removeSession = (id) => setSessions(s => s.filter(x => x.id !== id));
-
-  const importFree = async () => {
-    if (!freeText.trim()) return;
-    setLoading(true);
+  const doImport = async function() {
+    if (!ft.trim()) return; setLoading(true);
     try {
-      const text = await callAI([{ role: 'user', content:
-        `Parse this workout history into sessions. Goal: ${profile.goal}, Equipment: ${profile.equipment}.
-History: "${freeText}"
-Return ONLY a JSON array with no extra text: [{"date":"approx date e.g. 2 weeks ago","workoutName":"Push Day","focus":"Chest, Shoulders","summary":"Bench 3x8@185, OHP 3x10@115","strengthBaseline":"Bench: 185x8"}]` }], 1500);
-      const parsed = extractJSON(text);
-      if (!Array.isArray(parsed)) throw new Error('Response was not an array');
-      onImported(parsed.map(s => ({ date: s.date, dayIndex: -1, week: 0, workoutName: s.workoutName, focus: s.focus||'', summary: s.summary, isPrior: true })), freeText);
-      setToast(`✓ ${parsed.length} sessions imported!`);
-    } catch(e) {
-      console.error('Import error:', e);
-      setToast('Import failed: ' + e.message);
-    }
+      const txt = await callAI([{role:'user',content:'Parse workout history. Goal:'+profile.goal+',Equip:'+profile.equipment+'. History:"'+ft+'". JSON array only: [{"date":"approx","workoutName":"Push Day","focus":"Chest","summary":"Bench 3x8@185"}]'}], 1500);
+      const parsed = jparse(txt);
+      if (!Array.isArray(parsed)) throw new Error('Not an array');
+      onImported(parsed.map(function(s){return {date:s.date,dayIndex:-1,week:0,workoutName:s.workoutName,focus:s.focus||'',summary:s.summary,isPrior:true};}), ft);
+      setToast('✓ ' + parsed.length + ' sessions imported!');
+    } catch(e2) { setToast('Import failed: ' + e2.message); }
     setLoading(false);
   };
 
-  const saveSessions = () => {
-    const valid = sessions.filter(s => s.name || s.notes);
-    if (!valid.length) return;
-    const summary = valid.map(s => `${s.date||'Prior'}: ${s.name} — ${s.notes}`).join('\n');
-    onImported(valid.map(s => ({ date: s.date||'Prior', dayIndex:-1, week:0, workoutName:s.name||'Session', focus:'', summary:s.notes, isPrior:true })), summary);
-    setToast(`✓ ${valid.length} sessions saved!`);
+  const saveSess = function() {
+    const v = sess.filter(function(s){return s.name||s.notes;});
+    if (!v.length) return;
+    const sum = v.map(function(s){return (s.date||'Prior')+': '+s.name+' — '+s.notes;}).join('\n');
+    onImported(v.map(function(s){return {date:s.date||'Prior',dayIndex:-1,week:0,workoutName:s.name||'Session',focus:'',summary:s.notes,isPrior:true};}), sum);
+    setToast('✓ ' + v.length + ' sessions saved!');
   };
 
-  return (
-    <div className="screen">
-      <div style={{padding:'52px 20px 16px',flexShrink:0}}>
-        <div className="label" style={{marginBottom:'3px'}}>Import</div>
-        <div className="display" style={{fontSize:'44px'}}>HISTORY</div>
-        <div style={{fontSize:'13px',color:'var(--muted2)',marginTop:'6px',lineHeight:'1.6'}}>Log past workouts so the AI baselines your fitness from day one.</div>
-      </div>
-      <div className="mtabs" style={{margin:'0 20px 0',flexShrink:0}}>
-        <button className={`mtab${tab==='free'?' active':''}`} onClick={()=>setTab('free')}>📝 Quick Import</button>
-        <button className={`mtab${tab==='sessions'?' active':''}`} onClick={()=>setTab('sessions')}>📋 Session by Session</button>
-      </div>
-      <div className="page" style={{padding:'16px 20px 0'}}>
-        {tab === 'free' && <>
-          <div style={{fontSize:'13px',color:'var(--muted2)',marginBottom:'12px',lineHeight:'1.6'}}>Describe your recent training in plain English — type it or use your voice.</div>
-
-          {/* Voice button */}
-          <button
-            onClick={toggleVoice}
-            style={{width:'100%',background:'var(--s1)',border:`1px solid ${voiceActive?'var(--red)':'var(--border2)'}`,color:voiceActive?'var(--red)':'var(--muted2)',padding:'12px',fontFamily:'var(--font-body)',fontSize:'13px',fontWeight:600,letterSpacing:'1px',textTransform:'uppercase',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginBottom:'10px',transition:'all 0.2s'}}
-          >
-            🎙️ {voiceActive ? '⏹ STOP — TAP TO FINISH' : 'DESCRIBE WITH VOICE'}
-          </button>
-          {voiceActive && (
-            <div style={{fontSize:'12px',color:'var(--acc2)',marginBottom:'8px',textAlign:'center',letterSpacing:'1px',textTransform:'uppercase'}}>
-              🔴 Listening — just talk naturally about your workouts...
-            </div>
-          )}
-
-          <textarea className="inp" style={{minHeight:'140px',marginBottom:'14px'}} value={freeText} onChange={e=>setFreeText(e.target.value)}
-            placeholder="e.g. Last 2 weeks I've been doing Push/Pull/Legs 4x/week. Push: bench 3x8@185, OHP 3x10@115. Pull: pull-ups 4x8, rows 3x10@155. Legs: squat 4x6@225, RDL 3x10@185..."/>
-          <button className="btn btn-acc" style={{width:'100%',marginBottom:'16px'}} disabled={loading||!freeText.trim()} onClick={importFree}>
-            {loading ? 'ANALYZING...' : 'IMPORT & ANALYZE →'}
-          </button>
-        </>}
-
-        {tab === 'sessions' && <>
-          <div style={{fontSize:'13px',color:'var(--muted2)',marginBottom:'12px',lineHeight:'1.6'}}>Add individual sessions with details.</div>
-          {sessions.map((s) => (
-            <div key={s.id} className="pscard">
-              <div className="pshdr" onClick={e => { const b = e.currentTarget.nextSibling; b.classList.toggle('open'); }}>
-                <div style={{flex:1}}>
-                  <div className="label">{s.date||'No date'}</div>
-                  <div style={{fontWeight:600,fontSize:'14px',marginTop:'2px'}}>{s.name||'Unnamed Session'}</div>
-                </div>
-                <button onClick={e=>{e.stopPropagation();removeSession(s.id)}} style={{background:'none',border:'none',color:'var(--red)',fontSize:'20px',cursor:'pointer'}}>×</button>
-              </div>
-              <div className="psbody">
-                <div style={{marginBottom:'10px'}}>
-                  <div className="label" style={{marginBottom:'6px'}}>Date</div>
-                  <input className="inp" type="date" value={s.date} onChange={e=>updateSession(s.id,'date',e.target.value)} style={{padding:'10px 12px'}}/>
-                </div>
-                <div style={{marginBottom:'10px'}}>
-                  <div className="label" style={{marginBottom:'6px'}}>Workout name</div>
-                  <input className="inp" type="text" value={s.name} onChange={e=>updateSession(s.id,'name',e.target.value)} placeholder="e.g. Push Day" style={{padding:'10px 12px'}}/>
-                </div>
-                <div>
-                  <div className="label" style={{marginBottom:'6px'}}>Exercises & weights</div>
-                  <textarea className="inp" style={{minHeight:'70px'}} value={s.notes} onChange={e=>updateSession(s.id,'notes',e.target.value)} placeholder="e.g. Bench 3x8@185, OHP 3x10@115"/>
-                </div>
-              </div>
-            </div>
-          ))}
-          <button
-            onClick={addSession}
-            style={{width:'100%',background:'transparent',border:'1px dashed var(--border2)',color:'var(--muted2)',padding:'13px',fontFamily:'var(--font-body)',fontSize:'13px',fontWeight:'600',letterSpacing:'1px',textTransform:'uppercase',cursor:'pointer',marginBottom:'12px',transition:'all 0.15s'}}
-            onMouseOver={e=>{e.currentTarget.style.borderColor='var(--acc)';e.currentTarget.style.color='var(--acc)'}}
-            onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.color='var(--muted2)'}}
-          >+ ADD SESSION</button>
-          <button className="btn btn-acc" style={{width:'100%',marginBottom:'16px'}} disabled={!sessions.filter(s=>s.name||s.notes).length} onClick={saveSessions}>
-            SAVE ALL SESSIONS →
-          </button>
-        </>}
-      </div>
-      {toast && <Toast msg={toast} onDone={()=>setToast('')}/>}
-    </div>
+  return div({className:'screen'},
+    div({style:{padding:'48px 19px 13px',flexShrink:0}},
+      div({className:'lbl',style:{marginBottom:'2px'}}, 'Import'), div({className:'disp'}, 'HISTORY'),
+      div({style:{fontSize:'13px',color:'var(--muted2)',marginTop:'4px',lineHeight:'1.6'}}, 'Log past workouts so the AI baselines your fitness from day one.')
+    ),
+    div({className:'mts', style:{margin:'0 19px',flexShrink:0}},
+      btn({className:'mt'+(tab==='free'?' on':''), onClick:function(){setTab('free');}}, '📝 Quick Import'),
+      btn({className:'mt'+(tab==='sessions'?' on':''), onClick:function(){setTab('sessions');}}, '📋 Session by Session')
+    ),
+    div({className:'page', style:{padding:'13px 19px 0'}},
+      tab==='free' && div({},
+        div({style:{fontSize:'13px',color:'var(--muted2)',marginBottom:'9px',lineHeight:'1.6'}}, 'Describe your recent training — type or use voice.'),
+        btn({onClick:togV, style:{width:'100%',background:'var(--s1)',border:'1px solid '+(von?'var(--red)':'var(--border2)'),color:von?'var(--red)':'var(--muted2)',padding:'11px',fontFamily:'inherit',fontSize:'13px',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',marginBottom:'8px',transition:'all .2s'}},
+          '🎙️ ', von ? '⏹ STOP RECORDING' : 'DESCRIBE WITH VOICE'
+        ),
+        von && div({style:{fontSize:'12px',color:'var(--acc2)',marginBottom:'6px',textAlign:'center',letterSpacing:'1px',textTransform:'uppercase'}}, '🔴 Listening — describe your workouts...'),
+        e('textarea',{className:'inp',style:{minHeight:'130px',marginBottom:'12px'},value:ft,onInput:function(ev){setFt(ev.target.value);},placeholder:'e.g. Last 2 weeks PPL 4x/week. Bench 3x8@185, OHP 3x10@115...'}),
+        btn({className:'btn ba', style:{width:'100%',marginBottom:'13px'}, disabled:loading||!ft.trim(), onClick:doImport}, loading ? 'ANALYZING…' : 'IMPORT & ANALYZE →')
+      ),
+      tab==='sessions' && div({},
+        div({style:{fontSize:'13px',color:'var(--muted2)',marginBottom:'9px',lineHeight:'1.6'}}, 'Add individual sessions with details.'),
+        sess.map(function(s, idx) {
+          return div({key:s.id, style:{background:'var(--s1)',border:'1px solid var(--border)',marginBottom:'7px',overflow:'hidden'}},
+            div({style:{padding:'10px 13px',display:'flex',alignItems:'center',cursor:'pointer'}, onClick:function(ev){
+              const b = ev.currentTarget.nextSibling; b.style.display = b.style.display==='block'?'none':'block';
+            }},
+              div({style:{flex:1}}, div({className:'lbl'},s.date||'No date'), div({style:{fontWeight:700,fontSize:'14px',marginTop:'1px'}},s.name||'Unnamed')),
+              btn({onClick:function(ev){ev.stopPropagation();setSess(function(ss){return ss.filter(function(x){return x.id!==s.id;});});}, style:{background:'none',border:'none',color:'var(--red)',fontSize:'19px',cursor:'pointer'}}, '×')
+            ),
+            div({style:{display:'none',borderTop:'1px solid var(--border)',padding:'12px'}},
+              div({style:{marginBottom:'8px'}}, div({className:'lbl',style:{marginBottom:'4px'}},'Date'), e('input',{className:'inp',type:'date',value:s.date,onInput:function(ev){const v=ev.target.value;setSess(function(ss){return ss.map(function(x){return x.id===s.id?Object.assign({},x,{date:v}):x;});});},style:{padding:'8px 10px'}})),
+              div({style:{marginBottom:'8px'}}, div({className:'lbl',style:{marginBottom:'4px'}},'Workout name'), e('input',{className:'inp',type:'text',value:s.name,onInput:function(ev){const v=ev.target.value;setSess(function(ss){return ss.map(function(x){return x.id===s.id?Object.assign({},x,{name:v}):x;});});},placeholder:'e.g. Push Day',style:{padding:'8px 10px'}})),
+              div({}, div({className:'lbl',style:{marginBottom:'4px'}},'Exercises & weights'), e('textarea',{className:'inp',style:{minHeight:'60px'},value:s.notes,onInput:function(ev){const v=ev.target.value;setSess(function(ss){return ss.map(function(x){return x.id===s.id?Object.assign({},x,{notes:v}):x;});});},placeholder:'e.g. Bench 3x8@185'}))
+            )
+          );
+        }),
+        btn({onClick:function(){setSess(function(s){return s.concat([{id:Date.now(),date:'',name:'',notes:''}]);});}, style:{width:'100%',background:'transparent',border:'1px dashed var(--border2)',color:'var(--muted2)',padding:'11px',fontFamily:'inherit',fontSize:'13px',fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',cursor:'pointer',marginBottom:'9px',transition:'all .15s'},
+          onMouseOver:function(ev){ev.currentTarget.style.borderColor='var(--acc)';ev.currentTarget.style.color='var(--acc)';},
+          onMouseOut:function(ev){ev.currentTarget.style.borderColor='var(--border2)';ev.currentTarget.style.color='var(--muted2)';}
+        }, '+ ADD SESSION'),
+        btn({className:'btn ba', style:{width:'100%',marginBottom:'13px'}, disabled:!sess.filter(function(s){return s.name||s.notes;}).length, onClick:saveSess}, 'SAVE ALL SESSIONS →')
+      )
+    ),
+    toast && e(Toast, {msg:toast, onDone:function(){setToast('');} })
   );
 }
 
-// CHAT
-function ChatScreen({ profile, weekPlan, weekNum, history, onClose }) {
+// ── CHAT SCREEN ───────────────────────────────────────────────────────────
+function ChatScreen(props) {
+  const {profile, plan, weekNum, history, onClose} = props;
   const [msgs, setMsgs] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [voiceActive, setVoiceActive] = useState(false);
-  const bottomRef = useRef(null);
-  const srRef = useRef(null);
-  const taRef = useRef(null);
+  const [von, setVon] = useState(false);
+  const botRef = useRef(null), srRef = useRef(null), taRef = useRef(null);
 
-  useEffect(() => {
-    if (!msgs.length) {
-      setMsgs([{ role: 'ai', text: `Hey ${profile?.name||'there'}! I'm your FORGE coach. Your goal is **${profile?.goal}** and you're in week ${weekNum}. Ask me anything — training, form, recovery, or what's next. What's on your mind?` }]);
-    }
+  useEffect(function() {
+    if (!msgs.length) setMsgs([{role:'ai', text:'Hey '+(profile&&profile.name||'there')+'! I\'m your FORGE coach. Goal: **'+(profile&&profile.goal)+'**, week '+weekNum+'. Ask me anything!'}]);
   }, []);
+  useEffect(function() { botRef.current && botRef.current.scrollIntoView({behavior:'smooth'}); }, [msgs, loading]);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, loading]);
-
-  const send = async () => {
-    const text = input.trim();
-    if (!text || loading) return;
-    setInput('');
-    if (taRef.current) taRef.current.style.height = '';
-    const newMsgs = [...msgs, { role: 'user', text }];
-    setMsgs(newMsgs);
-    setLoading(true);
-
-    const ctx = `You are FORGE, an expert AI personal trainer. Be specific, motivating, and concise (under 180 words unless a plan is requested). Use **bold** for key points.
-User: ${profile?.name}, Goal: ${profile?.goal}, Experience: ${profile?.experience}, Equipment: ${profile?.equipment}. Week ${weekNum}: ${weekPlan?.weekTheme}. Recent: ${history.slice(-3).map(h=>h.workoutName).join(', ')||'none'}.`;
-
+  const send = async function() {
+    const txt = input.trim(); if (!txt || loading) return;
+    setInput(''); if (taRef.current) taRef.current.style.height = '';
+    const nm = msgs.concat([{role:'user',text:txt}]); setMsgs(nm); setLoading(true);
+    const ctx = 'FORGE AI trainer. <180 words, **bold** key points. User:'+profile.name+',Goal:'+profile.goal+',Equip:'+profile.equipment+',Week '+weekNum+':'+(plan&&plan.weekTheme)+'.';
     try {
-      const apiMsgs = newMsgs.slice(-10).map(m => ({
-        role: m.role === 'ai' ? 'assistant' : 'user',
-        content: m.role === 'user' && m === newMsgs[newMsgs.length-1] ? `${ctx}\n\n${m.text}` : m.text
-      }));
-      const reply = await callAI(apiMsgs, 500);
-      setMsgs(p => [...p, { role: 'ai', text: reply }]);
-    } catch {
-      setMsgs(p => [...p, { role: 'ai', text: 'Connection issue — try again in a moment!' }]);
-    }
+      const apiM = nm.slice(-10).map(function(m,mi){return {role:m.role==='ai'?'assistant':'user',content:mi===nm.length-1&&m.role==='user'?ctx+'\n\n'+m.text:m.text};});
+      const r = await callAI(apiM, 500); setMsgs(function(p){return p.concat([{role:'ai',text:r}]);});
+    } catch(e2) { setMsgs(function(p){return p.concat([{role:'ai',text:'Connection issue — try again!'}]);}); }
     setLoading(false);
   };
 
-  const toggleVoice = async () => {
-    if (voiceActive) { srRef.current?.stop(); setVoiceActive(false); return; }
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert('Voice not supported. Use Safari on iOS or Chrome on Android.'); return; }
-    try { await navigator.mediaDevices.getUserMedia({ audio: true }); }
-    catch { alert('Microphone access denied. Allow mic access in browser settings.'); return; }
-    const sr = new SR();
-    sr.continuous = false; sr.interimResults = true; sr.lang = 'en-US';
-    sr.onresult = e => { setInput(Array.from(e.results).map(r=>r[0].transcript).join('')); };
-    sr.onerror = e => { console.error('SR error:', e.error); setVoiceActive(false); };
-    sr.onend = () => setVoiceActive(false);
-    srRef.current = sr;
-    try { sr.start(); setVoiceActive(true); } catch(err) { alert('Voice error: ' + err.message); }
+  const togV = async function() {
+    if (von) { srRef.current && srRef.current.stop(); setVon(false); return; }
+    const sr = await startVoice(function(t){setInput(t);}, function(){setVon(false);}, function(){setVon(false);});
+    if (sr) { srRef.current = sr; setVon(true); }
   };
 
-  return (
-    <div className="screen">
-      <div style={{background:'var(--s1)',borderBottom:'1px solid var(--border)',padding:'50px 20px 14px',flexShrink:0,display:'flex',alignItems:'center',gap:'14px'}}>
-        <button style={{background:'none',border:'none',color:'var(--muted2)',fontSize:'20px',cursor:'pointer',padding:0,lineHeight:1}} onClick={onClose}>←</button>
-        <div>
-          <div className="display" style={{fontSize:'28px',letterSpacing:'3px'}}>FORGE AI</div>
-          <div style={{fontSize:'12px',color:'var(--muted2)',marginTop:'1px'}}>Your personal coach</div>
-        </div>
-      </div>
-      <div className="page" style={{padding:'16px 16px 0',display:'flex',flexDirection:'column',gap:'12px'}}>
-        {msgs.map((m, i) => (
-          <div key={i} className={`msg ${m.role}`} dangerouslySetInnerHTML={{ __html: formatAI(m.text) }}/>
-        ))}
-        {loading && <div className="msg ai"><div className="thinking"><div className="td"/><div className="td"/><div className="td"/></div></div>}
-        <div ref={bottomRef}/>
-      </div>
-      <div style={{background:'var(--s1)',borderTop:'1px solid var(--border)',padding:`10px 14px calc(14px + var(--safe-bottom))`,display:'flex',gap:'8px',alignItems:'flex-end',flexShrink:0}}>
-        <button
-          onClick={toggleVoice}
-          style={{width:'44px',height:'44px',background:voiceActive?'rgba(255,68,85,0.12)':'var(--s2)',border:`1px solid ${voiceActive?'var(--red)':'var(--border2)'}`,color:voiceActive?'var(--red)':'var(--muted2)',fontSize:'18px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.2s'}}
-        >🎙️</button>
-        <textarea
-          ref={taRef}
-          className="inp"
-          style={{flex:1,minHeight:'44px',maxHeight:'110px',padding:'11px 13px',fontSize:'14px',lineHeight:'1.5'}}
-          rows={1}
-          value={input}
-          onChange={e => { setInput(e.target.value); e.target.style.height='auto'; e.target.style.height=Math.min(e.target.scrollHeight,110)+'px'; }}
-          onKeyDown={e => { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} }}
-          placeholder="Ask your coach anything..."
-        />
-        <button
-          onClick={send}
-          disabled={loading||!input.trim()}
-          style={{width:'44px',height:'44px',background:'var(--acc)',border:'none',cursor:'pointer',fontSize:'17px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.15s'}}
-        >➤</button>
-      </div>
-    </div>
+  const fmt = function(t) { return t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br/>'); };
+
+  return div({className:'screen'},
+    div({style:{background:'var(--s1)',borderBottom:'1px solid var(--border)',padding:'48px 19px 12px',flexShrink:0,display:'flex',alignItems:'center',gap:'12px'}},
+      btn({style:{background:'none',border:'none',color:'var(--muted2)',fontSize:'19px',cursor:'pointer',padding:0,lineHeight:1}, onClick:onClose}, '←'),
+      div({}, div({className:'disp',style:{fontSize:'24px',letterSpacing:'3px'}},'FORGE AI'), div({style:{fontSize:'12px',color:'var(--muted2)',marginTop:'1px'}},'Your personal coach'))
+    ),
+    div({className:'page', style:{padding:'13px',display:'flex',flexDirection:'column',gap:'10px'}},
+      msgs.map(function(m,i){ return div({key:i,className:'msg '+(m.role==='ai'?'a':'u'),dangerouslySetInnerHTML:{__html:fmt(m.text)}}); }),
+      loading && div({className:'msg a'}, div({className:'tkg'}, div({className:'td2'}), div({className:'td2'}), div({className:'td2'}))),
+      e('div',{ref:botRef})
+    ),
+    div({style:{background:'var(--s1)',borderTop:'1px solid var(--border)',padding:'8px 12px calc(11px + var(--safe))',display:'flex',gap:'6px',alignItems:'flex-end',flexShrink:0}},
+      btn({onClick:togV, style:{width:'40px',height:'40px',background:von?'rgba(255,68,85,.1)':'var(--s2)',border:'1px solid '+(von?'var(--red)':'var(--border2)'),color:von?'var(--red)':'var(--muted2)',fontSize:'16px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all .2s'}}, '🎙️'),
+      e('textarea',{ref:taRef,className:'inp',style:{flex:1,minHeight:'40px',maxHeight:'105px',padding:'9px 11px',fontSize:'14px',lineHeight:'1.5'},rows:1,value:input,
+        onInput:function(ev){setInput(ev.target.value);ev.target.style.height='auto';ev.target.style.height=Math.min(ev.target.scrollHeight,105)+'px';},
+        onKeyDown:function(ev){if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();send();}},
+        placeholder:'Ask your coach anything…'
+      }),
+      btn({onClick:send, disabled:loading||!input.trim(), style:{width:'40px',height:'40px',background:'var(--acc)',border:'none',cursor:'pointer',fontSize:'16px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all .15s'}}, '➤')
+    )
   );
 }
 
-// SWAP MODAL
-function SwapModal({ exercise, exIdx, profile, disliked, currentExercises, onSwap, onClose }) {
+// ── SWAP MODAL ────────────────────────────────────────────────────────────
+function SwapModal(props) {
+  const {ex, ei, profile, disliked, curExs, onSwap, onClose} = props;
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const RS = [['😓','Too heavy'],['🏗️','Wrong equipment'],['🤕','Causes pain'],['🙅',"Don't like it"],['🔥','Too easy']];
 
-  const REASONS = [
-    ['😓','Too difficult right now'],['🏗️','Wrong equipment'],
-    ['🤕','Causes pain / discomfort'],['🙅','Just don\'t like it'],
-  ];
-
-  const submit = async () => {
-    if (!reason) return;
-    setLoading(true);
-
-    // Build a comprehensive exclusion list: disliked + all current exercises (except the one being swapped)
-    const dislikedNames = disliked.map(d => d.name);
-    const otherCurrentNames = currentExercises
-      .filter((_, i) => i !== exIdx)
-      .map(e => e.name);
-    const excludeAll = [...new Set([...dislikedNames, ...otherCurrentNames])];
-    const excludeStr = excludeAll.length ? excludeAll.join(', ') : 'none';
-
+  const submit = async function() {
+    if (!reason) return; setLoading(true);
+    const excl = (disliked||[]).map(function(d){return d.name;}).concat(curExs.filter(function(_,i){return i!==ei;}).map(function(ex2){return ex2.name;}));
     try {
-      const text = await callAI([{ role:'user', content:
-        `Suggest ONE exercise to replace "${exercise.name}" (${exercise.sets}×${exercise.reps}, rest ${exercise.rest}).
-Workout focus: ${currentExercises.map(e=>e.name).join(', ')}.
-Reason for swap: ${reason}. Notes: ${notes||'none'}.
-Equipment: ${profile.equipment}. Goal: ${profile.goal}. Experience: ${profile.experience}.
-
-CRITICAL: Do NOT suggest any of these exercises (already in workout or previously rejected): ${excludeStr}
-The replacement MUST be a different exercise not on that list.
-
-Return ONLY JSON: {"name":"...","sets":3,"reps":"8-10","rest":"60s","notes":"coaching cue","reason":"why this is a great swap"}` }], 300);
-
-      const rep = extractJSON(text);
-
-      // Client-side safety check — if AI still returned a duplicate, reject it
-      const isDuplicate = otherCurrentNames.some(n =>
-        n.toLowerCase().trim() === rep.name.toLowerCase().trim()
-      );
-      if (isDuplicate) {
-        alert(`The AI suggested "${rep.name}" but that's already in your workout. Tap "Find Replacement" again for a different suggestion.`);
-        setLoading(false);
-        return;
+      const txt = await callAI([{role:'user',content:'Replace "'+ex.name+'" ('+ex.sets+'x'+ex.reps+'). Reason: '+reason+'. Notes: '+(notes||'none')+'. Equip: '+profile.equipment+'. Goal: '+profile.goal+'. DO NOT suggest: '+(excl.join(', ')||'none')+'. JSON: {"name":"...","sets":3,"reps":"8-10","rest":"60s","notes":"cue","reason":"why"}'}], 300);
+      const res = jparse(txt);
+      if (curExs.filter(function(_,i){return i!==ei;}).some(function(ex2){return ex2.name.toLowerCase()===res.name.toLowerCase();})) {
+        alert('"'+res.name+'" is already in your workout. Try again.'); setLoading(false); return;
       }
-
-      onSwap(exIdx, rep, reason);
-    } catch(err) {
-      console.error('Swap error:', err);
-      alert('Could not find replacement: ' + err.message);
-    }
+      onSwap(ei, res, ex.name, reason);
+    } catch(e2) { alert('Swap failed: ' + e2.message); }
     setLoading(false);
   };
 
-  return (
-    <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal-sheet">
-        <div className="display" style={{fontSize:'26px',marginBottom:'4px'}}>SWAP EXERCISE</div>
-        <div style={{color:'var(--acc2)',fontSize:'14px',fontWeight:600,marginBottom:'16px'}}>{exercise.name}</div>
-        <div className="label" style={{marginBottom:'10px'}}>Why don't you want to do this?</div>
-        <div className="cgrid" style={{marginBottom:'14px'}}>
-          {REASONS.map(([ic,v]) => (
-            <button key={v} className={`cbtn${reason===v?' sel':''}`} onClick={()=>setReason(v)}>{ic} {v}</button>
-          ))}
-          <button className={`cbtn cspan${reason==='Too easy — need harder variation'?' sel':''}`} onClick={()=>setReason('Too easy — need harder variation')}>🔥 Too easy — need harder variation</button>
-        </div>
-        <div style={{marginBottom:'14px'}}>
-          <div className="label" style={{marginBottom:'7px'}}>Extra notes (optional)</div>
-          <input className="inp" value={notes} onChange={e=>setNotes(e.target.value)} placeholder="e.g. bad shoulder, prefer dumbbells..." style={{padding:'11px 13px'}}/>
-        </div>
-        <div style={{display:'flex',gap:'10px'}}>
-          <button className="btn btn-ghost" style={{flex:1}} onClick={onClose}>CANCEL</button>
-          <button className="btn btn-acc" style={{flex:2}} disabled={!reason||loading} onClick={submit}>
-            {loading ? 'FINDING...' : 'FIND REPLACEMENT →'}
-          </button>
-        </div>
-      </div>
-    </div>
+  return div({className:'mb', onClick:function(ev){if(ev.target===ev.currentTarget)onClose();}},
+    div({className:'ms'},
+      div({className:'disp',style:{fontSize:'22px',marginBottom:'3px'}}, 'SWAP EXERCISE'),
+      div({style:{color:'var(--acc2)',fontSize:'14px',fontWeight:700,marginBottom:'13px'}}, ex.name),
+      div({className:'lbl',style:{marginBottom:'8px'}}, "Why don't you want to do this?"),
+      div({className:'cg2',style:{marginBottom:'11px'}},
+        RS.map(function(x){ return btn({key:x[1], className:'cb'+(reason===x[1]?' sel':''), onClick:function(){setReason(x[1]);}}, x[0]+' '+x[1]); })
+      ),
+      div({style:{marginBottom:'11px'}}, div({className:'lbl',style:{marginBottom:'5px'}}, 'Extra notes (optional)'), e('input',{className:'inp',value:notes,onInput:function(ev){setNotes(ev.target.value);},placeholder:'e.g. bad shoulder…',style:{padding:'10px 12px'}})),
+      div({style:{display:'flex',gap:'8px'}},
+        btn({className:'btn bg',style:{flex:1},onClick:onClose}, 'CANCEL'),
+        btn({className:'btn ba',style:{flex:2},disabled:!reason||loading,onClick:submit}, loading?'FINDING…':'FIND REPLACEMENT →')
+      )
+    )
   );
 }
 
-// ADD EXERCISE MODAL
-function AddExerciseModal({ day, profile, disliked, onAdd, onClose }) {
+// ── ADD EXERCISE MODAL ────────────────────────────────────────────────────
+function AddExModal(props) {
+  const {day, profile, disliked, onAdd, onClose} = props;
   const [mode, setMode] = useState('ai');
-  const [aiPrompt, setAiPrompt] = useState('');
+  const [p2, setP2] = useState('');
   const [pending, setPending] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [customName, setCustomName] = useState('');
-  const [customSets, setCustomSets] = useState('3');
-  const [customReps, setCustomReps] = useState('10-12');
-  const [customRest, setCustomRest] = useState('60s');
+  const [nm, setNm] = useState(''), [s2, setS2] = useState('3'), [r2, setR2] = useState('10-12'), [rs2, setRs2] = useState('60s');
 
-  const suggest = async () => {
+  const suggest = async function() {
     setLoading(true); setPending(null);
-    const dislikedNames = disliked.map(d => d.name);
-    const existingNames = day.exercises.map(e => e.name);
-    const excludeAll = [...new Set([...existingNames, ...dislikedNames])];
-    const excludeStr = excludeAll.join(', ');
+    const excl = day.exercises.map(function(ex){return ex.name;}).concat((disliked||[]).map(function(d){return d.name;}));
     try {
-      const text = await callAI([{ role:'user', content:
-        `Suggest ONE exercise to add to ${day.workoutName} (${day.focus}).
-Equipment: ${profile.equipment}. Goal: ${profile.goal}. Experience: ${profile.experience}.
-Request: "${aiPrompt||'something complementary to round out the session'}".
-
-CRITICAL: The workout already contains these exercises — do NOT suggest any of them: ${excludeStr}
-You MUST suggest a completely different exercise not on that list.
-
-Return ONLY JSON: {"name":"...","sets":3,"reps":"10-12","rest":"60s","notes":"coaching cue","reason":"why this fits"}` }], 300);
-      const result = extractJSON(text);
-
-      // Client-side duplicate check
-      const isDuplicate = existingNames.some(n =>
-        n.toLowerCase().trim() === result.name.toLowerCase().trim()
-      );
-      if (isDuplicate) {
-        alert(`The AI suggested "${result.name}" but that's already in your workout. Tap Suggest Again for a different one.`);
-        setLoading(false);
-        return;
+      const txt = await callAI([{role:'user',content:'Add exercise to '+day.workoutName+'('+day.focus+'). Equip:'+profile.equipment+'. Goal:'+profile.goal+'. Request:"'+(p2||'complementary')+'". DO NOT suggest: '+(excl.join(', ')||'none')+'. JSON: {"name":"...","sets":3,"reps":"10-12","rest":"60s","notes":"cue","reason":"why"}'}], 300);
+      const res = jparse(txt);
+      if (day.exercises.some(function(ex){return ex.name.toLowerCase()===res.name.toLowerCase();})) {
+        alert('"'+res.name+'" already in your workout. Tap Suggest Again.'); setLoading(false); return;
       }
-      setPending(result);
-    } catch(err) {
-      console.error('Add exercise error:', err);
-      alert('Could not get suggestion: ' + err.message);
-    }
+      setPending(res);
+    } catch(e2) { alert('Suggest failed: '+e2.message); }
     setLoading(false);
   };
 
-  const confirm = () => {
-    if (mode === 'ai' && pending) { onAdd(pending); }
-    else if (mode === 'custom' && customName.trim()) {
-      onAdd({ name:customName.trim(), sets:parseInt(customSets)||3, reps:customReps||'10-12', rest:customRest||'60s', notes:'Added manually', reason:'' });
-    }
+  const confirm = function() {
+    if (mode==='ai' && pending) onAdd(pending);
+    else if (mode==='custom' && nm.trim()) onAdd({name:nm.trim(),sets:parseInt(s2)||3,reps:r2||'10-12',rest:rs2||'60s',notes:'Added manually',reason:''});
   };
 
-  const canConfirm = mode === 'ai' ? !!pending : !!customName.trim();
-
-  return (
-    <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal-sheet">
-        <div className="display" style={{fontSize:'26px',marginBottom:'4px'}}>ADD EXERCISE</div>
-        <div style={{fontSize:'13px',color:'var(--muted2)',marginBottom:'16px',lineHeight:'1.5'}}>Add something extra or describe exactly what you want.</div>
-        <div className="mtabs">
-          <button className={`mtab${mode==='ai'?' active':''}`} onClick={()=>{setMode('ai');setPending(null);}}>🤖 AI Suggest</button>
-          <button className={`mtab${mode==='custom'?' active':''}`} onClick={()=>{setMode('custom');setPending(null);}}>✏️ I Know What I Want</button>
-        </div>
-
-        {mode === 'ai' && <>
-          <div style={{marginBottom:'12px'}}>
-            <div className="label" style={{marginBottom:'7px'}}>Any preferences? (optional)</div>
-            <input className="inp" value={aiPrompt} onChange={e=>setAiPrompt(e.target.value)} placeholder="e.g. rear delts, quick finisher, core work..." style={{padding:'11px 13px'}}/>
-          </div>
-          <button className="btn btn-acc" style={{width:'100%',marginBottom:'14px'}} disabled={loading} onClick={suggest}>
-            {loading ? 'THINKING...' : pending ? 'SUGGEST AGAIN →' : 'SUGGEST EXERCISE →'}
-          </button>
-          {pending && (
-            <div className="card card-green" style={{marginBottom:'14px'}}>
-              <div style={{fontWeight:700,fontSize:'15px',marginBottom:'3px'}}>{pending.name}</div>
-              <div style={{fontSize:'12px',color:'var(--muted2)',marginBottom:'5px'}}>{pending.sets} sets × {pending.reps} · Rest {pending.rest}</div>
-              <div style={{fontSize:'12px',color:'#aaa',fontStyle:'italic'}}>{pending.reason}</div>
-            </div>
-          )}
-        </>}
-
-        {mode === 'custom' && (
-          <div>
-            <div style={{marginBottom:'12px'}}>
-              <div className="label" style={{marginBottom:'7px'}}>Exercise name</div>
-              <input className="inp" value={customName} onChange={e=>setCustomName(e.target.value)} placeholder="e.g. Cable Fly, Face Pull..." style={{padding:'11px 13px'}}/>
-            </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'8px',marginBottom:'14px'}}>
-              {[['Sets',customSets,setCustomSets,'number'],['Reps',customReps,setCustomReps,'text'],['Rest',customRest,setCustomRest,'text']].map(([lbl,val,setter,type])=>(
-                <div key={lbl}>
-                  <div className="label" style={{marginBottom:'6px'}}>{lbl}</div>
-                  <input className="inp" type={type} value={val} onChange={e=>setter(e.target.value)} style={{padding:'9px 10px',textAlign:'center'}}/>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div style={{display:'flex',gap:'10px',marginTop:'4px'}}>
-          <button className="btn btn-ghost" style={{flex:1}} onClick={onClose}>CANCEL</button>
-          <button className="btn btn-acc" style={{flex:2}} disabled={!canConfirm} onClick={confirm}>ADD TO WORKOUT →</button>
-        </div>
-      </div>
-    </div>
+  return div({className:'mb', onClick:function(ev){if(ev.target===ev.currentTarget)onClose();}},
+    div({className:'ms'},
+      div({className:'disp',style:{fontSize:'22px',marginBottom:'3px'}}, 'ADD EXERCISE'),
+      div({style:{fontSize:'13px',color:'var(--muted2)',marginBottom:'13px',lineHeight:'1.5'}}, 'Add something extra or describe exactly what you want.'),
+      div({className:'mts'},
+        btn({className:'mt'+(mode==='ai'?' on':''), onClick:function(){setMode('ai');setPending(null);}}, '🤖 AI Suggest'),
+        btn({className:'mt'+(mode==='custom'?' on':''), onClick:function(){setMode('custom');setPending(null);}}, '✏️ Custom')
+      ),
+      mode==='ai' && div({},
+        div({style:{marginBottom:'10px'}}, div({className:'lbl',style:{marginBottom:'5px'}},'Preferences (optional)'), e('input',{className:'inp',value:p2,onInput:function(ev){setP2(ev.target.value);},placeholder:'e.g. rear delts, core, finisher…',style:{padding:'10px 12px'}})),
+        btn({className:'btn ba',style:{width:'100%',marginBottom:'11px'},disabled:loading,onClick:suggest}, loading?'THINKING…':pending?'SUGGEST AGAIN →':'SUGGEST EXERCISE →'),
+        pending && div({className:'card',style:{borderLeft:'3px solid var(--green)',marginBottom:'11px'}},
+          div({style:{fontWeight:700,fontSize:'15px',marginBottom:'2px'}}, pending.name),
+          div({style:{fontSize:'12px',color:'var(--muted2)',marginBottom:'3px'}}, pending.sets+' sets × '+pending.reps+' · Rest '+pending.rest),
+          div({style:{fontSize:'12px',color:'#aaa',fontStyle:'italic'}}, pending.reason)
+        )
+      ),
+      mode==='custom' && div({},
+        div({style:{marginBottom:'9px'}}, div({className:'lbl',style:{marginBottom:'5px'}},'Exercise name'), e('input',{className:'inp',value:nm,onInput:function(ev){setNm(ev.target.value);},placeholder:'e.g. Cable Fly…',style:{padding:'10px 12px'}})),
+        div({style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'6px',marginBottom:'11px'}},
+          [['Sets',s2,setS2,'number'],['Reps',r2,setR2,'text'],['Rest',rs2,setRs2,'text']].map(function(x){
+            return div({key:x[0]}, div({className:'lbl',style:{marginBottom:'4px'}},x[0]), e('input',{className:'inp',type:x[3],value:x[1],onInput:function(ev){x[2](ev.target.value);},style:{padding:'7px 8px',textAlign:'center'}}));
+          })
+        )
+      ),
+      div({style:{display:'flex',gap:'8px',marginTop:'3px'}},
+        btn({className:'btn bg',style:{flex:1},onClick:onClose}, 'CANCEL'),
+        btn({className:'btn ba',style:{flex:2},disabled:mode==='ai'?!pending:!nm.trim(),onClick:confirm}, 'ADD TO WORKOUT →')
+      )
+    )
   );
 }
 
-// MISSED DAYS MODAL
-function MissedDaysModal({ profile, weekPlan, weekNum, history, onAdapted, onClose }) {
+// ── MISSED DAYS MODAL ─────────────────────────────────────────────────────
+function MissedModal(props) {
+  const {profile, plan, weekNum, history, onAdapted, onClose} = props;
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const submit = async () => {
-    if (!reason.trim()) return;
-    setLoading(true);
-    const completed = history.filter(h=>h.week===weekNum).map(h=>h.workoutName).join(', ');
-    const remaining = weekPlan.days.filter((d,i)=>!d.isRest&&!history.some(h=>h.dayIndex===i&&h.week===weekNum)).map(d=>d.workoutName).join(', ');
+  const submit = async function() {
+    if (!reason.trim()) return; setLoading(true);
+    const completed = history.filter(function(h){return h.week===weekNum;}).map(function(h){return h.workoutName;}).join(', ');
+    const remaining = plan.days.filter(function(d,i){return !d.isRest&&!history.some(function(h){return h.dayIndex===i&&h.week===weekNum;});}).map(function(d){return d.workoutName;}).join(', ');
     try {
-      const text = await callAI([{ role:'user', content:
-        `FORGE AI: Athlete missed training days. Adapt their week plan.
-Profile: ${profile.name}, Goal: ${profile.goal}, Equipment: ${profile.equipment}
-Week theme: ${weekPlan.weekTheme}. Completed: ${completed||'nothing yet'}. Remaining: ${remaining}.
-Reason: "${reason}"
-Return updated 7-day plan JSON (same schema, 7 days, adjust remaining days around the reason):
-{"weekTheme":"...","insight":"encouraging message about adapting","days":[...]}` }], 3000);
-      const plan = parseJSON(text);
-      if (plan.days?.length === 7) onAdapted(plan);
-      else onClose();
-    } catch { onClose(); }
+      const txt = await callAI([{role:'user',content:'Athlete missed training. Profile:'+profile.name+','+profile.goal+','+profile.equipment+'. Week:'+plan.weekTheme+'. Completed:'+completed+'. Remaining:'+remaining+'. Reason:"'+reason+'". Return updated 7-day plan. JSON only (same schema as original).'}], 3000);
+      const updated = jparse(txt);
+      if (updated.days && updated.days.length===7) onAdapted(updated); else onClose();
+    } catch(e2) { onClose(); }
     setLoading(false);
   };
 
-  return (
-    <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal-sheet">
-        <div className="display" style={{fontSize:'26px',marginBottom:'4px'}}>MISSED DAYS?</div>
-        <div style={{fontSize:'13px',color:'var(--muted2)',marginBottom:'16px',lineHeight:'1.5'}}>Tell me what happened — I'll adapt your remaining week.</div>
-        <textarea className="inp" style={{minHeight:'90px',marginBottom:'14px'}} value={reason} onChange={e=>setReason(e.target.value)}
-          placeholder="e.g. Got sick Monday and Tuesday, feeling better now. Can we fit my workouts into the remaining days?"/>
-        <div style={{display:'flex',gap:'10px'}}>
-          <button className="btn btn-ghost" style={{flex:1}} onClick={onClose}>CANCEL</button>
-          <button className="btn btn-acc" style={{flex:2}} disabled={!reason.trim()||loading} onClick={submit}>
-            {loading ? 'ADAPTING...' : 'ADAPT MY PLAN →'}
-          </button>
-        </div>
-      </div>
-    </div>
+  return div({className:'mb', onClick:function(ev){if(ev.target===ev.currentTarget)onClose();}},
+    div({className:'ms'},
+      div({className:'disp',style:{fontSize:'22px',marginBottom:'3px'}}, 'MISSED DAYS?'),
+      div({style:{fontSize:'13px',color:'var(--muted2)',marginBottom:'13px',lineHeight:'1.5'}}, "Tell me what happened — I'll adapt your remaining week."),
+      e('textarea',{className:'inp',style:{minHeight:'85px',marginBottom:'12px'},value:reason,onInput:function(ev){setReason(ev.target.value);},placeholder:'e.g. Got sick Monday and Tuesday, feeling better now…'}),
+      div({style:{display:'flex',gap:'8px'}},
+        btn({className:'btn bg',style:{flex:1},onClick:onClose}, 'CANCEL'),
+        btn({className:'btn ba',style:{flex:2},disabled:!reason.trim()||loading,onClick:submit}, loading?'ADAPTING…':'ADAPT MY PLAN →')
+      )
+    )
   );
 }
 
-// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+// ── MAIN APP ──────────────────────────────────────────────────────────────
 function App() {
-  const [appState, setAppState] = useLocalStorage(STORAGE_KEY, {
-    profile: null, weekPlan: null, weekNum: 1,
-    history: [], priorSummary: '', disliked: []
-  });
-
+  const [st, setSt] = useLS(STORE, {profile:null,weekPlan:null,weekNum:1,history:[],priorSummary:'',disliked:[]});
   const [screen, setScreen] = useState('splash');
   const [tab, setTab] = useState('dashboard');
-  const [genMsg, setGenMsg] = useState('Building your personalized plan...');
+  const [genMsg, setGenMsg] = useState('Building your plan…');
   const [showSettings, setShowSettings] = useState(false);
-
-  // Workout state — not persisted (session only)
-  const [workoutDayIdx, setWorkoutDayIdx] = useState(null);
-  const workoutDayIdxRef = useRef(null); // stable ref for callbacks
-  const [workoutSets, setWorkoutSets] = useState({});
-  const [coachTip, setCoachTip] = useState('');
-  const [coachLoading, setCoachLoading] = useState(false);
-
-  // Modal state
-  const [swapTarget, setSwapTarget] = useState(null);  // exIdx
-  const [showAddEx, setShowAddEx] = useState(false);
-  const [showMissed, setShowMissed] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showMissed, setShowMissed] = useState(false);
+  const [showSwap, setShowSwap] = useState(null);
+  const [showAddEx, setShowAddEx] = useState(false);
   const [toast, setToast] = useState('');
+  const [wIdx, setWIdx] = useState(null);
+  const wIdxRef = useRef(null);
+  const [wSets, setWSets] = useState({});
+  const [isRe, setIsRe] = useState(false);
+  const [tip, setTip] = useState('');
+  const [tipLoad, setTipLoad] = useState(false);
+  const [inst, setInst] = useState(null);
 
-  // PWA install
-  const [installPrompt, setInstallPrompt] = useState(null);
-  const [showInstall, setShowInstall] = useState(false);
-
-  useEffect(() => {
-    const key = getApiKey();
-    if (key) _apiKey = key;
-    // Always start on splash — user explicitly chooses to continue or restart
-    window.addEventListener('beforeinstallprompt', e => {
-      e.preventDefault(); setInstallPrompt(e);
-      setTimeout(() => { if (!window.matchMedia('(display-mode: standalone)').matches) setShowInstall(true); }, 3500);
-    });
+  useEffect(function() {
+    const k = localStorage.getItem('forge_key'); if (k) _key = k;
+    window.addEventListener('beforeinstallprompt', function(ev) { ev.preventDefault(); setInst(ev); });
     setupPWA();
   }, []);
 
-  // ── Voice log — parse transcript into set updates ──
-  const handleVoiceLog = useCallback((exerciseIndex, parsedSets) => {
-    parsedSets.forEach((s, si) => {
-      // Fill existing set slots, or they'll be added via onAddSet if needed
-      setWorkoutSets(prev => {
-        const current = prev[exerciseIndex] || [];
-        const updated = [...current];
-        if (si < updated.length) {
-          updated[si] = {
-            ...updated[si],
-            weight: s.weight != null ? String(s.weight) : updated[si].weight,
-            reps: s.reps != null ? String(s.reps) : updated[si].reps,
-            done: true,
-          };
-        } else {
-          updated.push({
-            weight: s.weight != null ? String(s.weight) : '',
-            reps: s.reps != null ? String(s.reps) : '',
-            done: true,
-          });
-        }
-        return { ...prev, [exerciseIndex]: updated };
-      });
-    });
-  }, []);
+  const upd = function(patch) { setSt(function(s){ return Object.assign({}, s, patch); }); };
+  const toast$ = function(msg) { setToast(msg); };
 
-  // ── Exercise feedback — adjust remaining sets on the fly ──
-  const handleExerciseFeedback = useCallback((ei, completedCount, adjustedSets, message) => {
-    setWorkoutSets(prev => {
-      const current = [...(prev[ei] || [])];
-      // Keep completed sets, replace remaining with adjusted values
-      adjustedSets.forEach((s, i) => {
-        const targetIdx = completedCount + i;
-        if (targetIdx < current.length) {
-          current[targetIdx] = { ...current[targetIdx], weight: s.weight != null ? String(s.weight) : current[targetIdx].weight, reps: s.reps != null ? String(s.reps) : current[targetIdx].reps };
-        } else {
-          current.push({ weight: s.weight != null ? String(s.weight) : '', reps: s.reps != null ? String(s.reps) : '', done: false });
-        }
-      });
-      return { ...prev, [ei]: current };
-    });
-    if (message) setCoachTip(message);
-    setToast('Sets adjusted based on your feedback');
-  }, []);
-
-  const updateState = (patch) => setAppState(s => ({ ...s, ...patch }));
-  const handleOnboardComplete = async (profile) => {
-    updateState({ profile });
-    setScreen('generating');
-    setGenMsg('Building your personalized plan...');
-    try {
-      const plan = await generatePlan(profile, 1, appState.priorSummary);
-      updateState({ weekPlan: plan, weekNum: 1 });
-      setScreen('main'); setTab('dashboard');
-    } catch(e) {
-      console.error(e);
-      // offline fallback
-      updateState({ weekPlan: fallbackPlan(profile), weekNum: 1 });
-      setScreen('main'); setTab('dashboard');
-    }
+  const onBoard = async function(profile) {
+    upd({profile:profile}); setScreen('generating'); setGenMsg('Building your personalized plan…');
+    try { const plan = await genPlan(profile, 1, st.priorSummary, ''); upd({weekPlan:plan,weekNum:1}); }
+    catch(e2) { console.error(e2); upd({weekPlan:fallback(profile),weekNum:1}); }
+    setScreen('main');
   };
 
-  const [isReopening, setIsReopening] = useState(false);
-
-  // ── Start workout ──
-  const handleStartWorkout = async (dayIdx, reopening = false) => {
-    const day = appState.weekPlan.days[dayIdx];
-
-    // If reopening, try to restore logged sets from history
-    const initSets = {};
-    if (reopening) {
-      const histEntry = [...appState.history].reverse().find(h => h.dayIndex === dayIdx && h.week === appState.weekNum);
-      day.exercises.forEach((ex, ei) => {
-        // Restore saved sets if available, otherwise blank
-        const saved = histEntry?.loggedSets?.[ei];
-        initSets[ei] = saved || Array.from({ length: ex.sets }, () => ({ weight: '', reps: '', done: false }));
-      });
+  const startW = async function(idx, re) {
+    re = re || false;
+    const day = st.weekPlan.days[idx], init = {};
+    if (re) {
+      const ent = st.history.slice().reverse().find(function(h){return h.dayIndex===idx&&h.week===st.weekNum;});
+      day.exercises.forEach(function(ex,ei){ init[ei] = (ent&&ent.loggedSets&&ent.loggedSets[ei]) || Array.from({length:ex.sets},function(){return {weight:'',reps:'',done:false};}); });
     } else {
-      day.exercises.forEach((ex, ei) => {
-        initSets[ei] = Array.from({ length: ex.sets }, () => ({ weight: '', reps: '', done: false }));
-      });
+      day.exercises.forEach(function(ex,ei){ init[ei] = Array.from({length:ex.sets},function(){return {weight:'',reps:'',done:false};}); });
     }
-
-    setWorkoutDayIdx(dayIdx);
-    workoutDayIdxRef.current = dayIdx;
-    setWorkoutSets(initSets);
-    setIsReopening(reopening);
-    setCoachTip(''); setCoachLoading(true);
-    setScreen('workout');
-
-    try {
-      const tip = await callAI([{ role:'user', content:
-        `Give a brief 2-sentence coaching tip for ${day.workoutName} (${day.focus}). Goal: ${appState.profile.goal}, Experience: ${appState.profile.experience}. Be specific and motivating.` }], 150);
-      setCoachTip(tip);
-    } catch { setCoachTip(`Focus on controlled form throughout ${day.workoutName}. Quality reps beat sloppy heavy ones every time — own each set.`); }
-    setCoachLoading(false);
+    setWIdx(idx); wIdxRef.current = idx; setWSets(init); setIsRe(re); setTip(''); setTipLoad(true); setScreen('workout');
+    try { const t = await callAI([{role:'user',content:'2-sentence coaching tip for '+day.workoutName+'('+day.focus+'). Goal:'+st.profile.goal+'.'}], 120); setTip(t); }
+    catch(e2) { setTip('Focus on form throughout ' + day.workoutName + '. Quality reps beat sloppy heavy ones.'); }
+    setTipLoad(false);
   };
 
-  // ── Set operations (stable references using functional updates) ──
-  const handleUpdateSet = useCallback((ei, si, field, val) => {
-    setWorkoutSets(prev => {
-      const next = { ...prev };
-      next[ei] = prev[ei].map((s, i) => i === si ? { ...s, [field]: val } : s);
-      return next;
+  const onU = useCallback(function(ei,si,f,v){ setWSets(function(p){ const n=Object.assign({},p); n[ei]=n[ei].map(function(s,i){return i===si?Object.assign({},s,{[f]:v}):s;}); return n; }); }, []);
+  const onT = useCallback(function(ei,si){ setWSets(function(p){ const n=Object.assign({},p); n[ei]=n[ei].map(function(s,i){return i===si?Object.assign({},s,{done:!s.done}):s;}); return n; }); }, []);
+  const onAS = useCallback(function(ei) {
+    const idx = wIdxRef.current;
+    setWSets(function(p){ const n=Object.assign({},p); n[ei]=(n[ei]||[]).concat([{weight:'',reps:'',done:false}]); return n; });
+    setSt(function(p){ const pl = JSON.parse(JSON.stringify(p.weekPlan)); if(pl.days[idx]&&pl.days[idx].exercises[ei]) pl.days[idx].exercises[ei].sets++; return Object.assign({},p,{weekPlan:pl}); });
+  }, []);
+  const onRm = useCallback(function(ei) {
+    const idx = wIdxRef.current;
+    setSt(function(p){ const pl = JSON.parse(JSON.stringify(p.weekPlan)); pl.days[idx].exercises.splice(ei,1); return Object.assign({},p,{weekPlan:pl}); });
+    setWSets(function(p){ const n={}; Object.keys(p).forEach(function(k){ const i=parseInt(k); if(i<ei) n[i]=p[i]; else if(i>ei) n[i-1]=p[i]; }); return n; });
+    toast$('Exercise removed');
+  }, []);
+  const onSwapC = useCallback(function(ei, rep, oldName, reason) {
+    const idx = wIdxRef.current;
+    setSt(function(p){ const pl=JSON.parse(JSON.stringify(p.weekPlan)); pl.days[idx].exercises[ei]=rep; return Object.assign({},p,{weekPlan:pl,disliked:(p.disliked||[]).concat([{name:oldName,reason:reason}])}); });
+    setWSets(function(p){ const n=Object.assign({},p); n[ei]=Array.from({length:rep.sets},function(){return {weight:'',reps:'',done:false};}); return n; });
+    setShowSwap(null); setTip('Swapped to '+rep.name+'! '+(rep.reason||'')); toast$('Swapped to '+rep.name);
+  }, []);
+  const onAddExC = useCallback(function(ex) {
+    const idx = wIdxRef.current;
+    setSt(function(p){ const pl=JSON.parse(JSON.stringify(p.weekPlan)); pl.days[idx].exercises.push(ex); return Object.assign({},p,{weekPlan:pl}); });
+    setWSets(function(p){ const n=Object.assign({},p); n[Object.keys(p).length]=Array.from({length:ex.sets},function(){return {weight:'',reps:'',done:false};}); return n; });
+    setShowAddEx(false); setTip('Added '+ex.name+'! '+(ex.reason||'Great addition.')); toast$('Added '+ex.name);
+  }, []);
+  const onVL = useCallback(function(ei, ps) {
+    ps.forEach(function(s, si) {
+      setWSets(function(p){ const n=Object.assign({},p); const cur=(n[ei]||[]).slice(); if(si<cur.length) cur[si]=Object.assign({},cur[si],{weight:s.weight!=null?String(s.weight):cur[si].weight,reps:s.reps!=null?String(s.reps):cur[si].reps,done:true}); else cur.push({weight:s.weight!=null?String(s.weight):'',reps:s.reps!=null?String(s.reps):'',done:true}); n[ei]=cur; return n; });
     });
   }, []);
-
-  const handleToggleSet = useCallback((ei, si) => {
-    setWorkoutSets(prev => {
-      const next = { ...prev };
-      next[ei] = prev[ei].map((s, i) => i === si ? { ...s, done: !s.done } : s);
-      return next;
-    });
+  const onFb = useCallback(function(ei, done, adj, msg) {
+    setWSets(function(p){ const n=Object.assign({},p); const cur=(n[ei]||[]).slice(); adj.forEach(function(s,i){ const ti=done+i; if(ti<cur.length) cur[ti]=Object.assign({},cur[ti],{weight:s.weight!=null?String(s.weight):cur[ti].weight,reps:s.reps!=null?String(s.reps):cur[ti].reps}); else cur.push({weight:s.weight!=null?String(s.weight):'',reps:s.reps!=null?String(s.reps):'',done:false}); }); n[ei]=cur; return n; });
+    if (msg) setTip(msg); toast$('Sets adjusted');
   }, []);
 
-  const handleAddSet = useCallback((ei) => {
-    const dayIdx = workoutDayIdxRef.current;
-    setWorkoutSets(prev => ({ ...prev, [ei]: [...(prev[ei]||[]), { weight:'', reps:'', done:false }] }));
-    setAppState(prev => {
-      const plan = JSON.parse(JSON.stringify(prev.weekPlan));
-      if (plan.days[dayIdx]?.exercises[ei]) plan.days[dayIdx].exercises[ei].sets++;
-      return { ...prev, weekPlan: plan };
-    });
-  }, []);
-
-  // ── Remove exercise ──
-  const handleRemoveExercise = useCallback((ei) => {
-    const dayIdx = workoutDayIdxRef.current;
-    setAppState(prev => {
-      const plan = JSON.parse(JSON.stringify(prev.weekPlan));
-      plan.days[dayIdx].exercises.splice(ei, 1);
-      return { ...prev, weekPlan: plan };
-    });
-    setWorkoutSets(prev => {
-      const next = {};
-      Object.keys(prev).forEach(k => {
-        const idx = parseInt(k);
-        if (idx < ei) next[idx] = prev[idx];
-        else if (idx > ei) next[idx - 1] = prev[idx];
-      });
-      return next;
-    });
-    setToast('Exercise removed');
-  }, []);
-
-  // ── Swap exercise ──
-  const handleSwapConfirm = useCallback((ei, replacement, oldName, reason) => {
-    const dayIdx = workoutDayIdxRef.current;
-    setAppState(prev => {
-      const plan = JSON.parse(JSON.stringify(prev.weekPlan));
-      plan.days[dayIdx].exercises[ei] = replacement;
-      return {
-        ...prev,
-        weekPlan: plan,
-        disliked: [...(prev.disliked||[]), { name: oldName, reason }]
-      };
-    });
-    setWorkoutSets(prev => ({
-      ...prev,
-      [ei]: Array.from({ length: replacement.sets }, () => ({ weight:'', reps:'', done:false }))
-    }));
-    setSwapTarget(null);
-    setCoachTip(`Swapped to ${replacement.name}! ${replacement.reason || ''}`);
-    setToast(`Swapped to ${replacement.name}`);
-  }, []);
-
-  // ── Add exercise ──
-  const handleAddExercise = useCallback((ex) => {
-    const dayIdx = workoutDayIdxRef.current;
-    let newEi;
-    setAppState(prev => {
-      const plan = JSON.parse(JSON.stringify(prev.weekPlan));
-      newEi = plan.days[dayIdx].exercises.length;
-      plan.days[dayIdx].exercises.push(ex);
-      return { ...prev, weekPlan: plan };
-    });
-    // Use functional update so we get the real current length
-    setWorkoutSets(prev => {
-      const ei = Object.keys(prev).length;
-      return { ...prev, [ei]: Array.from({ length: ex.sets }, () => ({ weight:'', reps:'', done:false })) };
-    });
-    setShowAddEx(false);
-    setCoachTip(`Added ${ex.name}! ${ex.reason||'Great addition to round out the session.'}`);
-    setToast(`Added ${ex.name}`);
-  }, []);
-
-  // ── Finish workout ──
-  const handleFinishWorkout = async () => {
-    const day = appState.weekPlan.days[workoutDayIdx];
-    const summary = day.exercises.map((ex, ei) => {
-      const doneSets = (workoutSets[ei]||[]).filter(s => s.done || s.reps);
-      return `${ex.name}: ${doneSets.length}×`;
-    }).join(', ');
-
-    const entry = {
-      date: new Date().toLocaleDateString(),
-      dayIndex: workoutDayIdx, week: appState.weekNum,
-      workoutName: day.workoutName, focus: day.focus,
-      summary, isPrior: false,
-      loggedSets: { ...workoutSets },
-      exercises: day.exercises.map(ex => ({ name: ex.name, sets: ex.sets, reps: ex.reps, target: ex.target || null })),
-    };
-
-    let newHistory;
-    if (isReopening) {
-      // Replace the existing entry for this day/week instead of adding a duplicate
-      newHistory = appState.history.map(h =>
-        h.dayIndex === workoutDayIdx && h.week === appState.weekNum ? entry : h
-      );
-    } else {
-      newHistory = [...appState.history, entry];
-    }
-
-    const workoutDays = appState.weekPlan.days.filter(d => !d.isRest);
-    const completedThisWeek = newHistory.filter(h => h.week === appState.weekNum && !h.isPrior).length;
-
-    setScreen('main'); setTab('dashboard');
-    setWorkoutDayIdx(null); setWorkoutSets({}); setIsReopening(false);
-
-    if (!isReopening && completedThisWeek >= workoutDays.length) {
-      updateState({ history: newHistory });
-      const newWeek = appState.weekNum + 1;
-      setGenMsg(`Week complete! Building Week ${newWeek}...`);
-      setScreen('generating');
-      const lastLog = buildLastWeekLog(newHistory, appState.weekNum, appState.weekPlan);
-      try {
-        const plan = await generatePlan(appState.profile, newWeek, appState.priorSummary, lastLog);
-        updateState({ weekPlan: plan, weekNum: newWeek, history: newHistory });
-      } catch {
-        updateState({ weekPlan: fallbackPlan(appState.profile), weekNum: newWeek, history: newHistory });
-      }
-      setScreen('main'); setTab('dashboard');
-    } else {
-      updateState({ history: newHistory });
-      setToast(isReopening ? 'Workout updated! 💪' : 'Workout logged! 💪');
-    }
+  const finish = async function() {
+    const idx = wIdx, day = st.weekPlan.days[idx];
+    const sum = day.exercises.map(function(ex,ei){ const done=(wSets[ei]||[]).filter(function(s){return s.done||s.reps;}); return ex.name+': '+done.length+'×'; }).join(', ');
+    const entry = {date:new Date().toLocaleDateString(),dayIndex:idx,week:st.weekNum,workoutName:day.workoutName,focus:day.focus,summary:sum,isPrior:false,loggedSets:Object.assign({},wSets),exercises:day.exercises.map(function(ex){return {name:ex.name,sets:ex.sets,reps:ex.reps,target:ex.target||null};})};
+    let nh = isRe ? st.history.map(function(h){return h.dayIndex===idx&&h.week===st.weekNum?entry:h;}) : st.history.concat([entry]);
+    const wDays = st.weekPlan.days.filter(function(d){return !d.isRest;});
+    const dtw = nh.filter(function(h){return h.week===st.weekNum&&!h.isPrior;}).length;
+    setScreen('main'); setTab('dashboard'); setWIdx(null); setWSets({}); setIsRe(false);
+    if (!isRe && dtw >= wDays.length) {
+      upd({history:nh}); const nw = st.weekNum + 1; setGenMsg('Week complete! Building Week '+nw+'…'); setScreen('generating');
+      const lastLog = buildLog(nh, st.weekNum, st.weekPlan);
+      try { const plan = await genPlan(st.profile, nw, st.priorSummary, lastLog); upd({weekPlan:plan,weekNum:nw,history:nh}); }
+      catch(e2) { upd({weekPlan:fallback(st.profile),weekNum:nw,history:nh}); }
+      setScreen('main');
+    } else { upd({history:nh}); toast$(isRe?'Workout updated! 💪':'Workout logged! 💪'); }
   };
 
-  // ── Missed days adapt ──
-  const handleMissedAdapted = (plan) => {
-    updateState({ weekPlan: plan });
-    setShowMissed(false);
-    setToast('Plan adapted!');
+  const onSplash = function(reset) {
+    if (reset) { upd({profile:null,weekPlan:null,weekNum:1,history:[],priorSummary:'',disliked:[]}); setScreen('onboard'); return; }
+    if (!getKey()) { setShowSettings(true); return; }
+    if (st.profile && st.weekPlan) { setScreen('main'); setTab('dashboard'); } else setScreen('onboard');
   };
 
-  // ── Prior history import ──
-  const handleImported = (entries, summary) => {
-    updateState({
-      history: [...appState.history, ...entries],
-      priorSummary: (appState.priorSummary ? appState.priorSummary + '\n' : '') + summary
-    });
-    setTab('dashboard');
-    setToast(`${entries.length} sessions imported!`);
-  };
+  const curDay = wIdx !== null && st.weekPlan ? st.weekPlan.days[wIdx] : null;
+  const hasData = !!(st.profile && st.weekPlan);
 
-  // ── Splash start ──
-  const handleSplashStart = () => {
-    if (!getApiKey()) {
-      // No key yet — open settings first
-      setShowSettings(true);
-      return;
-    }
-    if (appState.profile && appState.weekPlan) {
-      setScreen('main'); setTab('dashboard');
-    } else {
-      updateState({ profile:null, weekPlan:null, weekNum:1, history:[], priorSummary:'', disliked:[] });
-      setScreen('onboard');
-    }
-  };
-
-  const [apiKeySet, setApiKeySet] = useState(() => !!getApiKey());
-  const hasData = !!(appState.profile && appState.weekPlan);
-
-  // Derive currentDay fresh from state every render so modals always see latest exercises
-  const currentDay = (workoutDayIdx !== null && appState.weekPlan)
-    ? appState.weekPlan.days[workoutDayIdx]
-    : null;
-
-  return (
-    <div style={{position:'relative',width:'100%',height:'100%',overflow:'hidden'}}>
-      {screen === 'splash' && <Splash onStart={handleSplashStart} hasData={hasData} onManageKey={() => setShowSettings(true)}/>}
-      {screen === 'onboard' && <Onboarding onComplete={handleOnboardComplete}/>}
-      {screen === 'generating' && <Generating message={genMsg}/>}
-
-      {screen === 'main' && !showChat && (
-        <>
-          {tab === 'dashboard' && (
-            <Dashboard
-              state={appState}
-              onStartWorkout={handleStartWorkout}
-              onOpenChat={() => setShowChat(true)}
-              onMissedDays={() => setShowMissed(true)}
-              onOpenSettings={() => setShowSettings(true)}
-            />
-          )}
-          {tab === 'history' && <HistoryScreen history={appState.history}/>}
-          {tab === 'import' && (
-            <ImportScreen profile={appState.profile} onImported={handleImported}/>
-          )}
-          {/* Bottom Nav */}
-          <nav className="nav">
-            {[['🏠','Home','dashboard'],['📊','History','history'],['📥','Import','import']].map(([ic,lbl,t])=>(
-              <button key={t} className={`nav-item${tab===t?' active':''}`} onClick={()=>setTab(t)}>
-                <span className="ni">{ic}</span><span className="nl">{lbl}</span>
-              </button>
-            ))}
-            <button className="nav-item" onClick={()=>setShowChat(true)}>
-              <span className="ni">🤖</span><span className="nl">Coach</span>
-            </button>
-          </nav>
-        </>
-      )}
-
-      {screen === 'workout' && workoutDayIdx !== null && (
-        <WorkoutScreen
-          dayIdx={workoutDayIdx}
-          weekPlan={appState.weekPlan}
-          profile={appState.profile}
-          sets={workoutSets}
-          isReopening={isReopening}
-          onUpdateSet={handleUpdateSet}
-          onToggleSet={handleToggleSet}
-          onAddSet={handleAddSet}
-          onSwap={ei => setSwapTarget(ei)}
-          onRemove={handleRemoveExercise}
-          onAddExercise={() => setShowAddEx(true)}
-          onFinish={handleFinishWorkout}
-          onBack={() => { setScreen('main'); setTab('dashboard'); }}
-          onVoiceLog={handleVoiceLog}
-          onFeedback={handleExerciseFeedback}
-          coachTip={coachTip}
-          coachLoading={coachLoading}
-        />
-      )}
-
-      {showChat && (
-        <ChatScreen
-          profile={appState.profile}
-          weekPlan={appState.weekPlan}
-          weekNum={appState.weekNum}
-          history={appState.history}
-          onClose={() => setShowChat(false)}
-        />
-      )}
-
-      {/* Modals — rendered outside screen checks so they appear on any screen */}
-      {swapTarget !== null && currentDay && currentDay.exercises[swapTarget] && (
-        <SwapModal
-          exercise={currentDay.exercises[swapTarget]}
-          exIdx={swapTarget}
-          profile={appState.profile}
-          disliked={appState.disliked||[]}
-          currentExercises={currentDay.exercises}
-          onSwap={(ei, replacement, reason) => handleSwapConfirm(ei, replacement, currentDay.exercises[ei]?.name || '', reason)}
-          onClose={() => setSwapTarget(null)}
-        />
-      )}
-
-      {showAddEx && currentDay && (
-        <AddExerciseModal
-          day={currentDay}
-          profile={appState.profile}
-          disliked={appState.disliked||[]}
-          onAdd={handleAddExercise}
-          onClose={() => setShowAddEx(false)}
-        />
-      )}
-
-      {showMissed && (
-        <MissedDaysModal
-          profile={appState.profile}
-          weekPlan={appState.weekPlan}
-          weekNum={appState.weekNum}
-          history={appState.history}
-          onAdapted={handleMissedAdapted}
-          onClose={() => setShowMissed(false)}
-        />
-      )}
-
-      {showSettings && (
-        <SettingsModal
-          currentKey={getApiKey()}
-          onSaved={() => {
-            setApiKeySet(true);
-            // If opened from splash with no key, proceed to onboard/main after saving
-            if (screen === 'splash') {
-              if (appState.profile && appState.weekPlan) { setScreen('main'); setShowSettings(false); }
-            }
-          }}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
-
-      {/* Install banner */}
-      {showInstall && installPrompt && (
-        <div className="install-banner">
-          <span style={{fontSize:'22px'}}>📲</span>
-          <div style={{flex:1}}>
-            <div style={{fontSize:'13px',fontWeight:700,color:'var(--acc)',letterSpacing:'1px'}}>INSTALL FORGE</div>
-            <div style={{fontSize:'11px',color:'var(--muted2)',marginTop:'2px'}}>Add to home screen for gym use</div>
-          </div>
-          <button className="btn btn-acc" style={{padding:'8px 14px',fontSize:'12px'}}
-            onClick={async()=>{ installPrompt.prompt(); await installPrompt.userChoice; setInstallPrompt(null); setShowInstall(false); }}>
-            INSTALL
-          </button>
-          <button onClick={()=>setShowInstall(false)} style={{background:'none',border:'none',color:'var(--muted2)',fontSize:'20px',cursor:'pointer',padding:'0 2px'}}>×</button>
-        </div>
-      )}
-
-      {toast && <Toast msg={toast} onDone={()=>setToast('')}/>}
-    </div>
+  return div({style:{position:'relative',width:'100%',height:'100%',overflow:'hidden'}},
+    screen==='splash' && e(Splash, {hasData:hasData, onStart:onSplash, onSettings:function(){setShowSettings(true);}}),
+    screen==='onboard' && e(Onboarding, {onComplete:onBoard}),
+    screen==='generating' && e(Loading, {msg:genMsg}),
+    screen==='main' && !showChat && div({style:{position:'relative',width:'100%',height:'100%'}},
+      tab==='dashboard' && e(Dashboard, {st:st, onW:startW, onChat:function(){setShowChat(true);}, onMissed:function(){setShowMissed(true);}, onSettings:function(){setShowSettings(true);}}),
+      tab==='history' && e(HistoryScreen, {history:st.history}),
+      tab==='import' && e(ImportScreen, {profile:st.profile, onImported:function(ents, sum){ upd({history:st.history.concat(ents), priorSummary:(st.priorSummary?st.priorSummary+'\n':'')+sum}); setTab('dashboard'); toast$(ents.length+' sessions imported!'); }}),
+      e('nav', {className:'nav'},
+        [['🏠','Home','dashboard'],['📊','History','history'],['📥','Import','import']].map(function(x){
+          return btn({key:x[2], className:'nb'+(tab===x[2]?' on':''), onClick:function(){setTab(x[2]);}},
+            span({className:'ni'}, x[0]), span({className:'nl'}, x[1])
+          );
+        }),
+        btn({className:'nb', onClick:function(){setShowChat(true);}}, span({className:'ni'},'🤖'), span({className:'nl'},'Coach'))
+      )
+    ),
+    screen==='workout' && wIdx!==null && e(WorkoutScreen, {dayIdx:wIdx,plan:st.weekPlan,profile:st.profile,sets:wSets,isRe:isRe,onU:onU,onT:onT,onAS:onAS,onSwap:function(ei){setShowSwap(ei);},onRm:onRm,onAddEx:function(){setShowAddEx(true);},onFinish:finish,onBack:function(){setScreen('main');setTab('dashboard');},onVL:onVL,onFb:onFb,tip:tip,tipLoad:tipLoad}),
+    showChat && e(ChatScreen, {profile:st.profile,plan:st.weekPlan,weekNum:st.weekNum,history:st.history,onClose:function(){setShowChat(false);}}),
+    showSettings && e(Settings, {onClose:function(){setShowSettings(false);}, onSaved:function(){}}),
+    showMissed && e(MissedModal, {profile:st.profile,plan:st.weekPlan,weekNum:st.weekNum,history:st.history,onAdapted:function(plan){upd({weekPlan:plan});setShowMissed(false);toast$('Plan adapted!');},onClose:function(){setShowMissed(false);}}),
+    showSwap !== null && curDay && curDay.exercises[showSwap] && e(SwapModal, {ex:curDay.exercises[showSwap],ei:showSwap,profile:st.profile,disliked:st.disliked||[],curExs:curDay.exercises,onSwap:onSwapC,onClose:function(){setShowSwap(null);}}),
+    showAddEx && curDay && e(AddExModal, {day:curDay,profile:st.profile,disliked:st.disliked||[],onAdd:onAddExC,onClose:function(){setShowAddEx(false);}}),
+    inst && div({style:{position:'fixed',bottom:'calc(64px + var(--safe))',left:'9px',right:'9px',background:'var(--s2)',border:'1px solid var(--acc)',padding:'10px 12px',display:'flex',alignItems:'center',gap:'9px',zIndex:150}},
+      span({style:{fontSize:'19px'}}, '📲'),
+      div({style:{flex:1}},
+        div({style:{fontSize:'13px',fontWeight:700,color:'var(--acc)',letterSpacing:'1px'}}, 'INSTALL FORGE'),
+        div({style:{fontSize:'11px',color:'var(--muted2)',marginTop:'1px'}}, 'Add to home screen')
+      ),
+      btn({className:'btn ba', style:{padding:'6px 12px',fontSize:'12px'}, onClick:async function(){inst.prompt();await inst.userChoice;setInst(null);}}, 'INSTALL'),
+      btn({onClick:function(){setInst(null);}, style:{background:'none',border:'none',color:'var(--muted2)',fontSize:'17px',cursor:'pointer',padding:'0 2px'}}, '×')
+    ),
+    toast && e(Toast, {msg:toast, onDone:function(){setToast('');} })
   );
 }
 
-// ─── FALLBACK PLAN ────────────────────────────────────────────────────────────
-function fallbackPlan(p) {
-  return {
-    weekTheme: 'Foundation Week',
-    insight: `Welcome ${p.name}! This week we're building your foundation for ${p.goal}. Focus on form over weight — every rep counts.`,
-    trainingDays: 4,
-    days: [
-      { dayName:'Monday', workoutName:'Push Day', focus:'Chest, Shoulders, Triceps', duration:'50 min', isRest:false, exercises:[
-        {name:'Barbell Bench Press',sets:4,reps:'6-8',rest:'2min',notes:'Drive feet into floor'},
-        {name:'Overhead Press',sets:3,reps:'8-10',rest:'90s',notes:'Brace core throughout'},
-        {name:'Incline Dumbbell Press',sets:3,reps:'10-12',rest:'75s',notes:'Control the eccentric'},
-        {name:'Tricep Pushdown',sets:3,reps:'12-15',rest:'60s',notes:'Elbows tucked'},
-      ]},
-      { dayName:'Tuesday', workoutName:'Pull Day', focus:'Back, Biceps, Rear Delts', duration:'50 min', isRest:false, exercises:[
-        {name:'Barbell Row',sets:4,reps:'6-8',rest:'2min',notes:'Keep back flat, hinge at hips'},
-        {name:'Pull-Up / Lat Pulldown',sets:3,reps:'8-10',rest:'90s',notes:'Full stretch at top'},
-        {name:'Face Pull',sets:3,reps:'15-20',rest:'60s',notes:'External rotate at end'},
-        {name:'Dumbbell Curl',sets:3,reps:'10-12',rest:'60s',notes:'Supinate at top'},
-      ]},
-      { dayName:'Wednesday', workoutName:'Rest Day', focus:'Recovery', duration:'', isRest:true, exercises:[] },
-      { dayName:'Thursday', workoutName:'Leg Day', focus:'Quads, Hamstrings, Glutes', duration:'55 min', isRest:false, exercises:[
-        {name:'Barbell Squat',sets:4,reps:'6-8',rest:'2min',notes:'Break parallel, drive knees out'},
-        {name:'Romanian Deadlift',sets:3,reps:'8-10',rest:'90s',notes:'Feel the hamstring stretch'},
-        {name:'Leg Press',sets:3,reps:'12-15',rest:'75s',notes:'Full range, do not lock out'},
-        {name:'Walking Lunges',sets:3,reps:'10 each',rest:'60s',notes:'Knee tracks over toe'},
-      ]},
-      { dayName:'Friday', workoutName:'Upper Body', focus:'Chest, Back, Shoulders', duration:'50 min', isRest:false, exercises:[
-        {name:'Dumbbell Press',sets:4,reps:'10-12',rest:'75s',notes:'Controlled tempo'},
-        {name:'Cable Row',sets:4,reps:'10-12',rest:'75s',notes:'Squeeze shoulder blades'},
-        {name:'Lateral Raise',sets:3,reps:'15-20',rest:'60s',notes:'Lead with elbows'},
-        {name:'Push-Up',sets:3,reps:'to failure',rest:'60s',notes:'Perfect form only'},
-      ]},
-      { dayName:'Saturday', workoutName:'Rest Day', focus:'Recovery', duration:'', isRest:true, exercises:[] },
-      { dayName:'Sunday', workoutName:'Rest Day', focus:'Recovery', duration:'', isRest:true, exercises:[] },
-    ]
-  };
-}
+// ── MOUNT ─────────────────────────────────────────────────────────────────
+ReactDOM.createRoot(document.getElementById('root')).render(e(App));
 
-// ─── PWA ──────────────────────────────────────────────────────────────────────
-function setupPWA() {
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 512;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#080808'; ctx.fillRect(0,0,512,512);
-  ctx.strokeStyle = '#e8ff47'; ctx.lineWidth = 16;
-  ctx.strokeRect(20,20,472,472);
-  ctx.fillStyle = '#e8ff47'; ctx.font = 'bold 148px Arial Black,sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('FORGE', 256, 210);
-  ctx.fillStyle = '#555'; ctx.font = '52px Arial,sans-serif';
-  ctx.fillText('AI TRAINER', 256, 320);
-  const ic = canvas.toDataURL('image/png');
-  document.getElementById('apple-icon').href = ic;
-
-  const manifest = {
-    name:'FORGE — AI Personal Trainer', short_name:'FORGE',
-    description:'Your AI-powered personal trainer', start_url:'.',
-    display:'standalone', background_color:'#080808', theme_color:'#080808',
-    orientation:'portrait', icons:[
-      {src:ic,sizes:'192x192',type:'image/png',purpose:'any maskable'},
-      {src:ic,sizes:'512x512',type:'image/png',purpose:'any maskable'}
-    ]
-  };
-  const blob = new Blob([JSON.stringify(manifest)],{type:'application/json'});
-  document.getElementById('pwa-manifest').href = URL.createObjectURL(blob);
-
-  if ('serviceWorker' in navigator) {
-    const sw = `
-const C='forge-r1';
-self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.add(self.location.href)).then(()=>self.skipWaiting())));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-self.addEventListener('fetch',e=>{
-  if(e.request.url.includes('anthropic.com')||e.request.url.includes('googleapis')||e.request.url.includes('cdnjs')){
-    e.respondWith(fetch(e.request).catch(()=>new Response('',{status:503})));return;
-  }
-  e.respondWith(caches.match(e.request).then(c=>{
-    if(c)return c;
-    return fetch(e.request).then(r=>{
-      if(r&&r.status===200){const cl=r.clone();caches.open(C).then(ca=>ca.put(e.request,cl));}
-      return r;
-    }).catch(()=>caches.match(e.request));
-  }));
-});`;
-    const swBlob = new Blob([sw],{type:'application/javascript'});
-    navigator.serviceWorker.register(URL.createObjectURL(swBlob),{scope:'./'}).catch(()=>{});
-  }
-}
-
-// ─── MOUNT ────────────────────────────────────────────────────────────────────
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+})();
 </script>
 </body>
 </html>
