@@ -530,12 +530,13 @@ function ApiKeyScreen({ onSaved }) {
 
 // ─── SETTINGS MODAL ───────────────────────────────────────────────────────────
 function SettingsModal({ currentKey, onSaved, onClose }) {
-  const [key, setKey] = useState(currentKey ? '••••••••' + currentKey.slice(-6) : '');
-  const [editing, setEditing] = useState(!currentKey);
+  const [editing, setEditing] = useState(false);
   const [newKey, setNewKey] = useState('');
   const [testing, setTesting] = useState(false);
   const [err, setErr] = useState('');
   const [saved, setSaved] = useState(false);
+
+  const maskedKey = currentKey ? '••••••••' + currentKey.slice(-8) : null;
 
   const save = async () => {
     const k = newKey.trim();
@@ -545,10 +546,11 @@ function SettingsModal({ currentKey, onSaved, onClose }) {
     try {
       await callAI([{ role: 'user', content: 'Reply with the single word: ready' }], 20);
       setSaved(true);
-      setTimeout(() => { onSaved(); onClose(); }, 800);
+      onSaved();
+      setTimeout(() => { setSaved(false); setEditing(false); setNewKey(''); }, 1200);
     } catch(e) {
       setErr('Key test failed: ' + e.message);
-      setApiKey(currentKey);
+      setApiKey(currentKey || '');
     }
     setTesting(false);
   };
@@ -556,32 +558,54 @@ function SettingsModal({ currentKey, onSaved, onClose }) {
   return (
     <div className="modal-bg" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal-sheet">
-        <div className="display" style={{fontSize:'26px',marginBottom:'16px'}}>SETTINGS</div>
-        <div className="label" style={{marginBottom:'8px'}}>Anthropic API Key</div>
-        {!editing ? (
-          <div style={{display:'flex',gap:'10px',alignItems:'center',marginBottom:'16px'}}>
-            <div className="inp" style={{flex:1,color:'var(--muted2)',cursor:'default'}}>
-              ••••••••{currentKey?.slice(-6)}
-            </div>
-            <button className="btn btn-ghost" style={{padding:'13px 16px',whiteSpace:'nowrap'}} onClick={() => setEditing(true)}>CHANGE</button>
+        <div className="display" style={{fontSize:'26px',marginBottom:'20px'}}>⚙ SETTINGS</div>
+
+        {/* API Key section */}
+        <div style={{background:'var(--s2)',border:'1px solid var(--border)',padding:'16px',marginBottom:'16px'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
+            <div className="label">Anthropic API Key</div>
+            {currentKey && !editing && (
+              <span style={{fontSize:'11px',color:'var(--green)',letterSpacing:'1px',textTransform:'uppercase'}}>✓ Connected</span>
+            )}
           </div>
-        ) : (
-          <>
-            <input className="inp" type="password" value={newKey} onChange={e => { setNewKey(e.target.value); setErr(''); }}
-              placeholder="sk-ant-api03-..." style={{marginBottom:'10px'}}/>
-            {err && <div style={{color:'var(--red)',fontSize:'12px',marginBottom:'8px'}}>{err}</div>}
-            {saved && <div style={{color:'var(--green)',fontSize:'12px',marginBottom:'8px'}}>✓ Key saved successfully!</div>}
-            <div style={{display:'flex',gap:'10px',marginBottom:'16px'}}>
-              {currentKey && <button className="btn btn-ghost" style={{flex:1}} onClick={() => { setEditing(false); setNewKey(''); }}>CANCEL</button>}
-              <button className="btn btn-acc" style={{flex:2}} disabled={!newKey.trim() || testing} onClick={save}>
-                {testing ? 'TESTING...' : 'SAVE KEY →'}
+
+          {!editing ? (
+            <>
+              <div style={{fontFamily:'var(--font-mono)',fontSize:'13px',color:'var(--muted2)',marginBottom:'12px',padding:'10px 12px',background:'var(--bg)',border:'1px solid var(--border)'}}>
+                {maskedKey || <span style={{color:'var(--red)'}}>No key set</span>}
+              </div>
+              <button className="btn btn-ghost" style={{width:'100%'}} onClick={() => setEditing(true)}>
+                {currentKey ? 'CHANGE KEY' : 'ADD KEY'}
               </button>
-            </div>
-          </>
-        )}
-        <div style={{fontSize:'12px',color:'var(--muted2)',lineHeight:'1.6',background:'var(--s2)',padding:'10px 12px',borderLeft:'2px solid var(--border2)',marginBottom:'16px'}}>
-          Get your API key at <strong>console.anthropic.com</strong> → API Keys. Your key stays on this device only.
+            </>
+          ) : (
+            <>
+              <input className="inp" type="password" value={newKey}
+                onChange={e => { setNewKey(e.target.value); setErr(''); }}
+                placeholder="sk-ant-api03-..."
+                style={{marginBottom:'8px'}}
+                onKeyDown={e => e.key === 'Enter' && save()}
+                autoFocus
+              />
+              {err && <div style={{color:'var(--red)',fontSize:'12px',marginBottom:'8px'}}>{err}</div>}
+              {saved && <div style={{color:'var(--green)',fontSize:'12px',marginBottom:'8px'}}>✓ Key saved and verified!</div>}
+              <div style={{display:'flex',gap:'8px'}}>
+                <button className="btn btn-ghost" style={{flex:1}} onClick={() => { setEditing(false); setNewKey(''); setErr(''); }}>CANCEL</button>
+                <button className="btn btn-acc" style={{flex:2}} disabled={!newKey.trim() || testing} onClick={save}>
+                  {testing ? 'TESTING...' : 'SAVE & VERIFY →'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
+
+        {/* Info */}
+        <div style={{fontSize:'12px',color:'var(--muted2)',lineHeight:'1.7',marginBottom:'20px'}}>
+          Get your API key at <strong style={{color:'var(--acc)'}}>console.anthropic.com</strong> → API Keys.<br/>
+          Your key is stored only on this device and sent only to Anthropic.<br/>
+          Typical cost: ~$0.05–0.10 per week of training.
+        </div>
+
         <button className="btn btn-ghost" style={{width:'100%'}} onClick={onClose}>CLOSE</button>
       </div>
     </div>
@@ -589,7 +613,7 @@ function SettingsModal({ currentKey, onSaved, onClose }) {
 }
 
 // SPLASH
-function Splash({ onStart, hasData }) {
+function Splash({ onStart, hasData, onManageKey }) {
   return (
     <div className="screen" style={{alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}}>
       <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse at 25% 60%,rgba(232,255,71,.07) 0%,transparent 55%),radial-gradient(ellipse at 80% 20%,rgba(255,107,53,.07) 0%,transparent 50%)'}}/>
@@ -601,6 +625,9 @@ function Splash({ onStart, hasData }) {
             {hasData ? 'CONTINUE TRAINING' : 'GET STARTED'}
           </button>
           {hasData && <button className="btn btn-ghost" style={{width:'220px'}} onClick={onStart}>RESET & RESTART</button>}
+          <button className="btn btn-ghost" style={{width:'220px',marginTop:'8px'}} onClick={onManageKey}>
+            🔑 API KEY SETTINGS
+          </button>
         </div>
       </div>
     </div>
@@ -740,11 +767,10 @@ function Dashboard({ state, onStartWorkout, onOpenChat, onMissedDays, onOpenSett
         <div style={{padding:'52px 20px 16px',background:'linear-gradient(180deg,var(--s1) 0%,transparent 100%)',position:'relative'}}>
           <button
             onClick={onOpenSettings}
-            style={{position:'absolute',top:'52px',right:'20px',background:'transparent',border:'1px solid var(--border2)',color:'var(--muted2)',width:'36px',height:'36px',cursor:'pointer',fontSize:'16px',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.2s'}}
-            title="Settings"
+            style={{position:'absolute',top:'52px',right:'20px',background:'var(--s2)',border:'1px solid var(--border2)',color:'var(--muted2)',padding:'6px 12px',cursor:'pointer',fontSize:'12px',display:'flex',alignItems:'center',gap:'5px',transition:'all 0.2s',fontFamily:'var(--font-body)',fontWeight:600,letterSpacing:'1px',textTransform:'uppercase'}}
             onMouseOver={e=>{e.currentTarget.style.borderColor='var(--acc)';e.currentTarget.style.color='var(--acc)'}}
             onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.color='var(--muted2)'}}
-          >⚙</button>
+          >⚙ SETTINGS</button>
           <div className="label" style={{marginBottom:'3px'}}>Welcome back,</div>
           <div className="display" style={{fontSize:'clamp(40px,12vw,60px)',color:'var(--acc)'}}>{profile.name.toUpperCase()}</div>
           <div style={{fontSize:'13px',color:'var(--muted2)',marginTop:'4px'}}>Week {weekNum} · {weekPlan.weekTheme}</div>
@@ -1787,7 +1813,7 @@ function App() {
   useEffect(() => {
     const key = getApiKey();
     if (key) _apiKey = key;
-    if (appState.profile && appState.weekPlan) setScreen('main');
+    // Always start on splash — user explicitly chooses to continue or restart
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault(); setInstallPrompt(e);
       setTimeout(() => { if (!window.matchMedia('(display-mode: standalone)').matches) setShowInstall(true); }, 3500);
@@ -2052,6 +2078,11 @@ function App() {
 
   // ── Splash start ──
   const handleSplashStart = () => {
+    if (!getApiKey()) {
+      // No key yet — open settings first
+      setShowSettings(true);
+      return;
+    }
     if (appState.profile && appState.weekPlan) {
       setScreen('main'); setTab('dashboard');
     } else {
@@ -2061,7 +2092,6 @@ function App() {
   };
 
   const [apiKeySet, setApiKeySet] = useState(() => !!getApiKey());
-
   const hasData = !!(appState.profile && appState.weekPlan);
 
   // Derive currentDay fresh from state every render so modals always see latest exercises
@@ -2069,18 +2099,9 @@ function App() {
     ? appState.weekPlan.days[workoutDayIdx]
     : null;
 
-  // Show API key screen if no key saved yet
-  if (!apiKeySet) {
-    return <ApiKeyScreen onSaved={() => {
-      setApiKeySet(true);
-      // If they already have a profile+plan, go straight to dashboard
-      if (appState.profile && appState.weekPlan) setScreen('main');
-    }}/>;
-  }
-
   return (
     <div style={{position:'relative',width:'100%',height:'100%',overflow:'hidden'}}>
-      {screen === 'splash' && <Splash onStart={handleSplashStart} hasData={hasData}/>}
+      {screen === 'splash' && <Splash onStart={handleSplashStart} hasData={hasData} onManageKey={() => setShowSettings(true)}/>}
       {screen === 'onboard' && <Onboarding onComplete={handleOnboardComplete}/>}
       {screen === 'generating' && <Generating message={genMsg}/>}
 
@@ -2182,7 +2203,13 @@ function App() {
       {showSettings && (
         <SettingsModal
           currentKey={getApiKey()}
-          onSaved={() => setApiKeySet(true)}
+          onSaved={() => {
+            setApiKeySet(true);
+            // If opened from splash with no key, proceed to onboard/main after saving
+            if (screen === 'splash') {
+              if (appState.profile && appState.weekPlan) { setScreen('main'); setShowSettings(false); }
+            }
+          }}
           onClose={() => setShowSettings(false)}
         />
       )}
