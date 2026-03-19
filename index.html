@@ -280,14 +280,22 @@ const SPLIT_GUIDE = {
   6:'Push / Pull / Legs / Push / Pull / Legs'
 };
 
+// ─── API KEY ─────────────────────────────────────────────────────────────────
+let _apiKey = '';
+function getApiKey() { return _apiKey || localStorage.getItem('forge_apikey') || ''; }
+function setApiKey(k) { _apiKey = k; localStorage.setItem('forge_apikey', k); }
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 async function callAI(messages, maxTokens = 1000) {
+  const key = getApiKey();
+  if (!key) throw new Error('No API key set. Please enter your Anthropic API key in Settings.');
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true',
+      'x-api-key': key,
     },
     body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages })
   });
@@ -398,37 +406,166 @@ function extractJSON(text) {
 
 async function generatePlan(profile, weekNum = 1, priorSummary = '', lastWeekLog = '') {
   const n = parseDaysCount(profile.days);
-  const split = SPLIT_GUIDE[n] || SPLIT_GUIDE[4];
+  const suggestedSplit = SPLIT_GUIDE[n] || SPLIT_GUIDE[4];
 
-  const priorCtx = priorSummary ? `\nPRIOR HISTORY (use to calibrate intensity/weights):\n${priorSummary}\n` : '';
+  // User's explicit split preference takes absolute priority
+  const splitInstruction = profile.split
+    ? `TRAINING SPLIT — FOLLOW THIS EXACTLY: "${profile.split}"
+   The athlete has specified this split. You MUST use it. Do not substitute a different split.`
+    : `TRAINING SPLIT — AI choice: The athlete has no preference. Use a smart split for ${n} days.
+   Suggested: ${suggestedSplit}. Choose what best fits their goal (${profile.goal}).`;
+
+  const priorCtx = priorSummary ? `\nPRIOR HISTORY (calibrate intensity/weights from this):\n${priorSummary}\n` : '';
   const lastCtx = lastWeekLog ? `\nLAST WEEK COMPLETED:\n${lastWeekLog}\n` : '';
 
   const prompt = `You are FORGE, an expert AI personal trainer. Create a week ${weekNum} training plan.${priorCtx}${lastCtx}
 
-ATHLETE: Name=${profile.name}, Goal=${profile.goal}, Experience=${profile.experience}, Equipment=${profile.equipment}, Notes=${profile.notes||'none'}
+ATHLETE PROFILE:
+- Name: ${profile.name}
+- Goal: ${profile.goal}
+- Experience: ${profile.experience}
+- Equipment: ${profile.equipment}
+- Notes / injuries: ${profile.notes || 'none'}
 
-CRITICAL RULES — YOU MUST FOLLOW ALL OF THESE:
-1. Output EXACTLY 7 day objects, one per day Monday through Sunday.
-2. EXACTLY ${n} of those days must have "isRest": false. The other ${7-n} must have "isRest": true.
-3. Every non-rest day must have EXACTLY 4-5 exercises.
-4. Use this split for ${n} training days: ${split}
-   - Do NOT give every day the same workout type. Each day must target different muscle groups.
-5. All exercises must be achievable with: ${profile.equipment}
-6. Every exercise object must have: name (string), sets (number), reps (string), rest (string), notes (string)
-${weekNum > 1 ? '7. Progress from last week: increase reps or weight targets slightly.' : ''}
+${splitInstruction}
 
-Return ONLY this exact JSON structure with no extra text, no markdown, no explanation:
-{"weekTheme":"string","insight":"string","days":[{"dayName":"Monday","workoutName":"string","focus":"string","duration":"string","isRest":false,"exercises":[{"name":"string","sets":4,"reps":"8-10","rest":"90s","notes":"string"}]},{"dayName":"Tuesday","workoutName":"Rest","focus":"Recovery","duration":"","isRest":true,"exercises":[]}]}`;
+STRICT OUTPUT RULES:
+1. Return EXACTLY 7 day objects, Monday through Sunday.
+2. EXACTLY ${n} days must have "isRest": false. The other ${7 - n} must have "isRest": true.
+3. Every training day must have 4–5 exercises appropriate for that day's muscle group focus.
+4. Every exercise must be achievable with this equipment: ${profile.equipment}.
+5. Every exercise object must include: name (string), sets (number), reps (string), rest (string), notes (string).
+6. The workoutName and focus for each day must match the split you are using — they should be different across days, not all the same.
+${weekNum > 1 ? '7. Progress from last week: slightly increase volume or intensity.' : ''}
+
+Return ONLY the JSON object below with no extra text, no markdown fences:
+{"weekTheme":"string","insight":"2-3 sentence personalised motivation referencing their goal","days":[{"dayName":"Monday","workoutName":"Upper Body A","focus":"Chest, Back, Shoulders","duration":"50 min","isRest":false,"exercises":[{"name":"Barbell Bench Press","sets":4,"reps":"6-8","rest":"2min","notes":"Drive through floor, full range"}]},{"dayName":"Tuesday","workoutName":"Rest","focus":"Recovery","duration":"","isRest":true,"exercises":[]}]}`;
 
   const text = await callAI([{ role: 'user', content: prompt }], 4000);
   const plan = extractJSON(text);
-  if (!plan.days || plan.days.length !== 7) throw new Error(`Invalid plan: got ${plan.days?.length} days`);
-  const trainingDays = plan.days.filter(d => !d.isRest).length;
-  if (trainingDays !== n) console.warn(`Expected ${n} training days, got ${trainingDays}`);
+  if (!plan.days || plan.days.length !== 7) throw new Error(`Invalid plan: got ${plan.days?.length ?? 0} days`);
   return { ...plan, trainingDays: n };
 }
 
 // ─── SCREENS ──────────────────────────────────────────────────────────────────
+
+// ─── API KEY SCREEN ───────────────────────────────────────────────────────────
+function ApiKeyScreen({ onSaved }) {
+  const [key, setKey] = useState('');
+  const [testing, setTesting] = useState(false);
+  const [err, setErr] = useState('');
+
+  const save = async () => {
+    const k = key.trim();
+    if (!k.startsWith('sk-ant-')) { setErr('Key should start with sk-ant-…'); return; }
+    setTesting(true); setErr('');
+    setApiKey(k);
+    try {
+      await callAI([{ role: 'user', content: 'Reply with the single word: ready' }], 20);
+      onSaved();
+    } catch(e) {
+      setErr('Key test failed: ' + e.message);
+      setApiKey('');
+    }
+    setTesting(false);
+  };
+
+  return (
+    <div className="screen" style={{alignItems:'center',justifyContent:'center',padding:'32px'}}>
+      <div style={{width:'100%',maxWidth:'420px'}}>
+        <div className="display" style={{fontSize:'52px',color:'var(--acc)',letterSpacing:'6px',marginBottom:'6px',textAlign:'center'}}>FORGE</div>
+        <div className="label" style={{textAlign:'center',marginBottom:'32px'}}>AI Personal Trainer</div>
+
+        <div style={{background:'var(--s1)',border:'1px solid var(--border)',padding:'24px',marginBottom:'20px'}}>
+          <div style={{fontWeight:700,fontSize:'15px',marginBottom:'8px'}}>🔑 Enter your Anthropic API Key</div>
+          <div style={{fontSize:'13px',color:'var(--muted2)',marginBottom:'16px',lineHeight:'1.6'}}>
+            FORGE uses the Anthropic API to generate your workouts and coach you. Your key is stored only on this device and never sent anywhere except Anthropic.
+          </div>
+          <div style={{fontSize:'12px',color:'var(--muted2)',marginBottom:'16px',lineHeight:'1.6',background:'var(--s2)',padding:'10px 12px',borderLeft:'2px solid var(--acc)'}}>
+            Get a free key at <strong style={{color:'var(--acc)'}}>console.anthropic.com</strong> → API Keys → Create Key
+          </div>
+          <div className="label" style={{marginBottom:'7px'}}>API Key</div>
+          <input
+            className="inp"
+            type="password"
+            value={key}
+            onChange={e => { setKey(e.target.value); setErr(''); }}
+            placeholder="sk-ant-api03-..."
+            style={{marginBottom:'12px',letterSpacing:'1px'}}
+            onKeyDown={e => e.key === 'Enter' && save()}
+          />
+          {err && <div style={{color:'var(--red)',fontSize:'12px',marginBottom:'10px'}}>{err}</div>}
+          <button className="btn btn-acc" style={{width:'100%'}} disabled={!key.trim() || testing} onClick={save}>
+            {testing ? 'TESTING KEY...' : 'SAVE & CONTINUE →'}
+          </button>
+        </div>
+        <div style={{fontSize:'11px',color:'var(--muted)',textAlign:'center',lineHeight:'1.6'}}>
+          Your key is saved locally on this device only.<br/>You can update it anytime from the settings icon.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SETTINGS MODAL ───────────────────────────────────────────────────────────
+function SettingsModal({ currentKey, onSaved, onClose }) {
+  const [key, setKey] = useState(currentKey ? '••••••••' + currentKey.slice(-6) : '');
+  const [editing, setEditing] = useState(!currentKey);
+  const [newKey, setNewKey] = useState('');
+  const [testing, setTesting] = useState(false);
+  const [err, setErr] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  const save = async () => {
+    const k = newKey.trim();
+    if (!k.startsWith('sk-ant-')) { setErr('Key should start with sk-ant-…'); return; }
+    setTesting(true); setErr('');
+    setApiKey(k);
+    try {
+      await callAI([{ role: 'user', content: 'Reply with the single word: ready' }], 20);
+      setSaved(true);
+      setTimeout(() => { onSaved(); onClose(); }, 800);
+    } catch(e) {
+      setErr('Key test failed: ' + e.message);
+      setApiKey(currentKey);
+    }
+    setTesting(false);
+  };
+
+  return (
+    <div className="modal-bg" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-sheet">
+        <div className="display" style={{fontSize:'26px',marginBottom:'16px'}}>SETTINGS</div>
+        <div className="label" style={{marginBottom:'8px'}}>Anthropic API Key</div>
+        {!editing ? (
+          <div style={{display:'flex',gap:'10px',alignItems:'center',marginBottom:'16px'}}>
+            <div className="inp" style={{flex:1,color:'var(--muted2)',cursor:'default'}}>
+              ••••••••{currentKey?.slice(-6)}
+            </div>
+            <button className="btn btn-ghost" style={{padding:'13px 16px',whiteSpace:'nowrap'}} onClick={() => setEditing(true)}>CHANGE</button>
+          </div>
+        ) : (
+          <>
+            <input className="inp" type="password" value={newKey} onChange={e => { setNewKey(e.target.value); setErr(''); }}
+              placeholder="sk-ant-api03-..." style={{marginBottom:'10px'}}/>
+            {err && <div style={{color:'var(--red)',fontSize:'12px',marginBottom:'8px'}}>{err}</div>}
+            {saved && <div style={{color:'var(--green)',fontSize:'12px',marginBottom:'8px'}}>✓ Key saved successfully!</div>}
+            <div style={{display:'flex',gap:'10px',marginBottom:'16px'}}>
+              {currentKey && <button className="btn btn-ghost" style={{flex:1}} onClick={() => { setEditing(false); setNewKey(''); }}>CANCEL</button>}
+              <button className="btn btn-acc" style={{flex:2}} disabled={!newKey.trim() || testing} onClick={save}>
+                {testing ? 'TESTING...' : 'SAVE KEY →'}
+              </button>
+            </div>
+          </>
+        )}
+        <div style={{fontSize:'12px',color:'var(--muted2)',lineHeight:'1.6',background:'var(--s2)',padding:'10px 12px',borderLeft:'2px solid var(--border2)',marginBottom:'16px'}}>
+          Get your API key at <strong>console.anthropic.com</strong> → API Keys. Your key stays on this device only.
+        </div>
+        <button className="btn btn-ghost" style={{width:'100%'}} onClick={onClose}>CLOSE</button>
+      </div>
+    </div>
+  );
+}
 
 // SPLASH
 function Splash({ onStart, hasData }) {
@@ -474,7 +611,15 @@ function Onboarding({ onComplete }) {
 
   const next = () => {
     if (step < STEPS.length - 1) setStep(s => s + 1);
-    else onComplete({ name: data.name?.trim() || 'Athlete', goal: data.goal, experience: data.experience, days: data.days, equipment: data.equipment, notes: data.notes || '' });
+    else onComplete({
+      name: data.name?.trim() || 'Athlete',
+      goal: data.goal,
+      experience: data.experience,
+      days: data.days,
+      equipment: data.equipment,
+      split: data.split?.trim() || '',
+      notes: data.notes || ''
+    });
   };
 
   return (
@@ -519,6 +664,14 @@ function Onboarding({ onComplete }) {
             <div className="label" style={{marginBottom:'7px'}}>Your name</div>
             <input className="inp" value={data.name||''} onChange={e=>sel('name',e.target.value)} placeholder="e.g. Alex"/>
           </div>
+          <div style={{marginBottom:'14px'}}>
+            <div className="label" style={{marginBottom:'7px'}}>Preferred training split (optional)</div>
+            <input className="inp" value={data.split||''} onChange={e=>sel('split',e.target.value)}
+              placeholder="e.g. 2 upper / 2 lower, Push Pull Legs, full body — or leave blank to let AI decide"/>
+            <div style={{fontSize:'11px',color:'var(--muted2)',marginTop:'5px',lineHeight:'1.5'}}>
+              Be as specific as you want — the AI will follow your instructions exactly.
+            </div>
+          </div>
           <div>
             <div className="label" style={{marginBottom:'7px'}}>How are you feeling? Injuries or notes?</div>
             <textarea className="inp" value={data.notes||''} onChange={e=>sel('notes',e.target.value)} placeholder="e.g. Feeling strong! Slight shoulder issue so avoid heavy overhead pressing."/>
@@ -551,7 +704,7 @@ function Generating({ message = 'Building your personalized plan...' }) {
 }
 
 // DASHBOARD
-function Dashboard({ state, onStartWorkout, onOpenChat, onMissedDays }) {
+function Dashboard({ state, onStartWorkout, onOpenChat, onMissedDays, onOpenSettings }) {
   const { profile, weekPlan, weekNum, history } = state;
   if (!profile || !weekPlan) return null;
 
@@ -563,10 +716,23 @@ function Dashboard({ state, onStartWorkout, onOpenChat, onMissedDays }) {
     <div className="screen">
       <div className="page">
         {/* Header */}
-        <div style={{padding:'52px 20px 16px',background:'linear-gradient(180deg,var(--s1) 0%,transparent 100%)'}}>
+        <div style={{padding:'52px 20px 16px',background:'linear-gradient(180deg,var(--s1) 0%,transparent 100%)',position:'relative'}}>
+          <button
+            onClick={onOpenSettings}
+            style={{position:'absolute',top:'52px',right:'20px',background:'transparent',border:'1px solid var(--border2)',color:'var(--muted2)',width:'36px',height:'36px',cursor:'pointer',fontSize:'16px',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.2s'}}
+            title="Settings"
+            onMouseOver={e=>{e.currentTarget.style.borderColor='var(--acc)';e.currentTarget.style.color='var(--acc)'}}
+            onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border2)';e.currentTarget.style.color='var(--muted2)'}}
+          >⚙</button>
           <div className="label" style={{marginBottom:'3px'}}>Welcome back,</div>
           <div className="display" style={{fontSize:'clamp(40px,12vw,60px)',color:'var(--acc)'}}>{profile.name.toUpperCase()}</div>
           <div style={{fontSize:'13px',color:'var(--muted2)',marginTop:'4px'}}>Week {weekNum} · {weekPlan.weekTheme}</div>
+          {profile.split && (
+            <div style={{fontSize:'12px',color:'var(--muted2)',marginTop:'3px',display:'flex',alignItems:'center',gap:'5px'}}>
+              <span style={{color:'var(--acc2)'}}>⚡</span>
+              <span>{profile.split}</span>
+            </div>
+          )}
         </div>
 
         {/* Week plan */}
@@ -702,16 +868,45 @@ function ExerciseCard({ exercise, exIdx, sets, onUpdateSet, onToggleSet, onAddSe
   );
 }
 
-function WorkoutScreen({ dayIdx, weekPlan, profile, sets, onUpdateSet, onToggleSet, onAddSet, onSwap, onRemove, onAddExercise, onFinish, onBack, coachTip, coachLoading }) {
+function WorkoutScreen({ dayIdx, weekPlan, profile, sets, onUpdateSet, onToggleSet, onAddSet, onSwap, onRemove, onAddExercise, onFinish, onBack, onVoiceLog, coachTip, coachLoading }) {
   const day = weekPlan.days[dayIdx];
   const exercises = day.exercises;
 
   const [voiceActive, setVoiceActive] = useState(false);
   const [voiceText, setVoiceText] = useState('');
+  const [voiceParsing, setVoiceParsing] = useState(false);
   const srRef = useRef(null);
 
   const mins = useMemo(() => estimateWorkoutMins(exercises), [exercises]);
   const totalSets = useMemo(() => exercises.reduce((a, ex) => a + (ex.sets || 3), 0), [exercises]);
+
+  // Parse final transcript into set data via AI
+  const parseVoiceIntoSets = async (transcript) => {
+    setVoiceParsing(true);
+    setVoiceText('Logging: "' + transcript + '"');
+    const exNames = exercises.map((e, i) => `${i}: ${e.name}`).join(', ');
+    try {
+      const text = await callAI([{ role: 'user', content:
+        `Parse this voice log into workout set data.
+Voice: "${transcript}"
+Exercises in this workout (by index): ${exNames}
+
+Return ONLY JSON: {"exerciseIndex": 0, "sets": [{"weight": 135, "reps": 8}, {"weight": 135, "reps": 8}]}
+- Match the exercise name as closely as possible to find the right index.
+- If weight is not mentioned, use null.
+- If you cannot parse it, return {"exerciseIndex": -1, "sets": []}` }], 200);
+      const parsed = extractJSON(text);
+      if (parsed.exerciseIndex >= 0 && parsed.sets?.length) {
+        onVoiceLog(parsed.exerciseIndex, parsed.sets);
+        setVoiceText(`✓ Logged ${parsed.sets.length} set${parsed.sets.length > 1 ? 's' : ''} for ${exercises[parsed.exerciseIndex]?.name}`);
+      } else {
+        setVoiceText('Could not match to an exercise — try again or log manually.');
+      }
+    } catch(e) {
+      setVoiceText('Voice log failed: ' + e.message);
+    }
+    setVoiceParsing(false);
+  };
 
   const toggleVoice = async () => {
     if (voiceActive) {
@@ -724,7 +919,6 @@ function WorkoutScreen({ dayIdx, weekPlan, profile, sets, onUpdateSet, onToggleS
       alert('Voice input is not supported in this browser.\n\niOS: Use Safari\nAndroid: Use Chrome');
       return;
     }
-    // Request mic permission explicitly first
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch(permErr) {
@@ -733,9 +927,11 @@ function WorkoutScreen({ dayIdx, weekPlan, profile, sets, onUpdateSet, onToggleS
     }
     const sr = new SR();
     sr.continuous = false; sr.interimResults = true; sr.lang = 'en-US';
+    let finalTranscript = '';
     sr.onresult = e => {
       const t = Array.from(e.results).map(r => r[0].transcript).join('');
       setVoiceText(t);
+      if (e.results[e.results.length - 1].isFinal) finalTranscript = t;
     };
     sr.onerror = e => {
       console.error('Speech recognition error:', e.error);
@@ -744,12 +940,15 @@ function WorkoutScreen({ dayIdx, weekPlan, profile, sets, onUpdateSet, onToggleS
       else if (e.error === 'no-speech') setVoiceText('No speech detected — try again.');
       else setVoiceText(`Voice error: ${e.error}`);
     };
-    sr.onend = () => setVoiceActive(false);
+    sr.onend = () => {
+      setVoiceActive(false);
+      if (finalTranscript.trim()) parseVoiceIntoSets(finalTranscript.trim());
+    };
     srRef.current = sr;
     try {
       sr.start();
       setVoiceActive(true);
-      setVoiceText('Listening...');
+      setVoiceText('Listening… say e.g. "bench press 3 sets of 8 at 135"');
     } catch(startErr) {
       console.error('SR start error:', startErr);
       alert('Could not start voice recognition: ' + startErr.message);
@@ -798,12 +997,13 @@ function WorkoutScreen({ dayIdx, weekPlan, profile, sets, onUpdateSet, onToggleS
           <div style={{marginBottom:'14px'}}>
             <button
               onClick={toggleVoice}
-              style={{width:'100%',background:'var(--s1)',border:`1px solid ${voiceActive?'var(--red)':'var(--border2)'}`,color:voiceActive?'var(--red)':'var(--muted2)',padding:'14px',fontFamily:'var(--font-body)',fontSize:'13px',fontWeight:'600',letterSpacing:'1px',textTransform:'uppercase',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',transition:'all 0.2s',animation:voiceActive?'pulse 1s infinite':''}}
+              disabled={voiceParsing}
+              style={{width:'100%',background:'var(--s1)',border:`1px solid ${voiceActive?'var(--red)':voiceParsing?'var(--acc2)':'var(--border2)'}`,color:voiceActive?'var(--red)':voiceParsing?'var(--acc2)':'var(--muted2)',padding:'14px',fontFamily:'var(--font-body)',fontSize:'13px',fontWeight:'600',letterSpacing:'1px',textTransform:'uppercase',cursor:voiceParsing?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',transition:'all 0.2s'}}
             >
-              🎙️ {voiceActive ? 'STOP RECORDING' : 'LOG WITH VOICE'}
+              {voiceParsing ? '⏳ LOGGING...' : voiceActive ? '⏹ STOP RECORDING' : '🎙️ LOG WITH VOICE'}
             </button>
             {voiceText && (
-              <div style={{background:'var(--s2)',border:'1px solid var(--border)',borderTop:'none',padding:'10px 14px',fontSize:'13px',color:'var(--muted2)',fontStyle:'italic'}}>
+              <div style={{background:'var(--s2)',border:'1px solid var(--border)',borderTop:'none',padding:'10px 14px',fontSize:'13px',color: voiceText.startsWith('✓') ? 'var(--green)' : 'var(--muted2)',fontStyle:'italic',lineHeight:'1.5'}}>
                 {voiceText}
               </div>
             )}
@@ -1262,9 +1462,10 @@ function App() {
     history: [], priorSummary: '', disliked: []
   });
 
-  const [screen, setScreen] = useState('splash'); // splash | onboard | generating | main
-  const [tab, setTab] = useState('dashboard');     // dashboard | history | import
+  const [screen, setScreen] = useState('splash');
+  const [tab, setTab] = useState('dashboard');
   const [genMsg, setGenMsg] = useState('Building your personalized plan...');
+  const [showSettings, setShowSettings] = useState(false);
 
   // Workout state — not persisted (session only)
   const [workoutDayIdx, setWorkoutDayIdx] = useState(null);
@@ -1285,12 +1486,40 @@ function App() {
   const [showInstall, setShowInstall] = useState(false);
 
   useEffect(() => {
+    const key = getApiKey();
+    if (key) _apiKey = key;
     if (appState.profile && appState.weekPlan) setScreen('main');
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault(); setInstallPrompt(e);
       setTimeout(() => { if (!window.matchMedia('(display-mode: standalone)').matches) setShowInstall(true); }, 3500);
     });
     setupPWA();
+  }, []);
+
+  // ── Voice log — parse transcript into set updates ──
+  const handleVoiceLog = useCallback((exerciseIndex, parsedSets) => {
+    parsedSets.forEach((s, si) => {
+      // Fill existing set slots, or they'll be added via onAddSet if needed
+      setWorkoutSets(prev => {
+        const current = prev[exerciseIndex] || [];
+        const updated = [...current];
+        if (si < updated.length) {
+          updated[si] = {
+            ...updated[si],
+            weight: s.weight != null ? String(s.weight) : updated[si].weight,
+            reps: s.reps != null ? String(s.reps) : updated[si].reps,
+            done: true,
+          };
+        } else {
+          updated.push({
+            weight: s.weight != null ? String(s.weight) : '',
+            reps: s.reps != null ? String(s.reps) : '',
+            done: true,
+          });
+        }
+        return { ...prev, [exerciseIndex]: updated };
+      });
+    });
   }, []);
 
   const updateState = (patch) => setAppState(s => ({ ...s, ...patch }));
@@ -1490,13 +1719,20 @@ function App() {
     }
   };
 
-  // ── Render ──
   const hasData = !!(appState.profile && appState.weekPlan);
+  const hasApiKey = !!getApiKey();
 
   // Derive currentDay fresh from state every render so modals always see latest exercises
   const currentDay = (workoutDayIdx !== null && appState.weekPlan)
     ? appState.weekPlan.days[workoutDayIdx]
     : null;
+
+  // Show API key screen if no key saved yet
+  if (!hasApiKey && screen !== 'apikey') {
+    return <ApiKeyScreen onSaved={() => {
+      if (appState.profile && appState.weekPlan) setScreen('main');
+    }}/>;
+  }
 
   return (
     <div style={{position:'relative',width:'100%',height:'100%',overflow:'hidden'}}>
@@ -1512,6 +1748,7 @@ function App() {
               onStartWorkout={handleStartWorkout}
               onOpenChat={() => setShowChat(true)}
               onMissedDays={() => setShowMissed(true)}
+              onOpenSettings={() => setShowSettings(true)}
             />
           )}
           {tab === 'history' && <HistoryScreen history={appState.history}/>}
@@ -1546,6 +1783,7 @@ function App() {
           onAddExercise={() => setShowAddEx(true)}
           onFinish={handleFinishWorkout}
           onBack={() => { setScreen('main'); setTab('dashboard'); }}
+          onVoiceLog={handleVoiceLog}
           coachTip={coachTip}
           coachLoading={coachLoading}
         />
@@ -1591,6 +1829,14 @@ function App() {
           history={appState.history}
           onAdapted={handleMissedAdapted}
           onClose={() => setShowMissed(false)}
+        />
+      )}
+
+      {showSettings && (
+        <SettingsModal
+          currentKey={getApiKey()}
+          onSaved={() => {}}
+          onClose={() => setShowSettings(false)}
         />
       )}
 
