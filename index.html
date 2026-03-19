@@ -75,11 +75,30 @@ textarea.inp{resize:none;min-height:80px;line-height:1.6}
     <div style="font-size:12px;letter-spacing:3px;color:#555;text-transform:uppercase">Loading...</div>
   </div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script>
+// Show visible error if React fails to load
+window.onerror = function(msg, src, line) {
+  document.getElementById('root').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#080808;color:#f0f0f0;padding:32px;text-align:center;gap:16px"><div style="font-size:52px;font-weight:900;letter-spacing:8px;color:#e8ff47">FORGE</div><div style="color:#ff4455;font-size:14px;font-weight:700">LOAD ERROR</div><div style="color:#555;font-size:12px;font-family:monospace;max-width:320px;word-break:break-all">' + msg + '</div><div style="color:#555;font-size:12px">Check your internet connection and reload.</div><button onclick="location.reload()" style="background:#e8ff47;border:none;color:#000;padding:12px 24px;font-weight:700;font-size:13px;cursor:pointer;margin-top:8px">RELOAD</button></div>';
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script>
+// Fallback if cdnjs failed - try unpkg
+if (typeof React === 'undefined') {
+  document.write('<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"><\/script>');
+  document.write('<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"><\/script>');
+}
+</script>
 <script>
 (function() {
 'use strict';
+
+// Guard: if React didn't load, show error
+if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+  document.getElementById('root').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#080808;color:#f0f0f0;padding:32px;text-align:center;gap:16px"><div style="font-size:52px;font-weight:900;letter-spacing:8px;color:#e8ff47">FORGE</div><div style="color:#ff4455;font-size:14px;font-weight:700">React failed to load</div><div style="color:#555;font-size:12px">Check your internet connection — FORGE requires a network connection on first load.</div><button onclick="location.reload()" style="background:#e8ff47;border:none;color:#000;padding:12px 24px;font-weight:700;font-size:13px;cursor:pointer;margin-top:8px">TRY AGAIN</button></div>';
+  return;
+}
 
 // Alias - e() = React.createElement, pure JS, zero compilation needed
 const e = React.createElement;
@@ -334,7 +353,7 @@ function setupPWA() {
   const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
   const pm = document.getElementById('pwa-manifest'); if (pm) pm.href = URL.createObjectURL(blob);
   if ('serviceWorker' in navigator) {
-    const sw = "const C='forge-r2';self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.add(self.location.href)).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));self.addEventListener('fetch',e=>{if(e.request.url.includes('anthropic.com')||e.request.url.includes('cdnjs')){e.respondWith(fetch(e.request).catch(()=>new Response('',{status:503})));return;}e.respondWith(caches.match(e.request).then(r=>{if(r)return r;return fetch(e.request).then(rs=>{if(rs&&rs.status===200){const cl=rs.clone();caches.open(C).then(ca=>ca.put(e.request,cl));}return rs;}).catch(()=>caches.match(e.request));}));});";
+    const sw = "const C='forge-v3';self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));self.addEventListener('fetch',e=>{const u=e.request.url;if(u.includes('anthropic.com')||u.includes('cdnjs')||u.includes('unpkg.com')||u.includes('fonts.google')){return;}e.respondWith(caches.match(e.request).then(r=>{if(r)return r;return fetch(e.request).then(rs=>{if(rs&&rs.status===200&&rs.type==='basic'){const cl=rs.clone();caches.open(C).then(ca=>ca.put(e.request,cl));}return rs;});}));});";
     const swB = new Blob([sw], {type:'application/javascript'});
     navigator.serviceWorker.register(URL.createObjectURL(swB), {scope:'./'}).catch(function(){});
   }
@@ -1322,8 +1341,27 @@ function App() {
 }
 
 // ── MOUNT ─────────────────────────────────────────────────────────────────
-ReactDOM.createRoot(document.getElementById('root')).render(e(App));
+try {
+  ReactDOM.createRoot(document.getElementById('root')).render(e(App));
+} catch(mountErr) {
+  document.getElementById('root').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#080808;color:#f0f0f0;padding:32px;text-align:center;gap:16px"><div style="font-size:52px;font-weight:900;letter-spacing:8px;color:#e8ff47">FORGE</div><div style="color:#ff4455;font-size:14px;font-weight:700">Startup Error</div><div style="color:#555;font-size:12px;font-family:monospace;max-width:320px;word-break:break-all">' + mountErr.message + '</div><button onclick="localStorage.clear();location.reload()" style="background:#e8ff47;border:none;color:#000;padding:12px 24px;font-weight:700;font-size:13px;cursor:pointer;margin-top:8px">CLEAR DATA & RELOAD</button></div>';
+}
 
+})();
+</script>
+<script>
+// Auto-download when opened as a preview in Claude
+(function(){
+  try {
+    if (window.location.href.includes('claude.ai') || window.location.href.includes('artifact') || document.referrer.includes('claude.ai')) {
+      var a = document.createElement('a');
+      a.href = window.location.href;
+      a.download = 'index.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  } catch(e) {}
 })();
 </script>
 </body>
