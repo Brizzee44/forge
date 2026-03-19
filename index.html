@@ -1230,7 +1230,30 @@ function App() {
       setWSets(function(p){ const n=Object.assign({},p); const cur=(n[ei]||[]).slice(); if(si<cur.length) cur[si]=Object.assign({},cur[si],{weight:s.weight!=null?String(s.weight):cur[si].weight,reps:s.reps!=null?String(s.reps):cur[si].reps,done:true}); else cur.push({weight:s.weight!=null?String(s.weight):'',reps:s.reps!=null?String(s.reps):'',done:true}); n[ei]=cur; return n; });
     });
   }, []);
+  const onVL = useCallback(function(ei, ps) {
+    ps.forEach(function(s, si) {
+      setWSets(function(p) {
+        const n = Object.assign({}, p);
+        const cur = (n[ei] || []).slice();
+        if (si < cur.length) cur[si] = Object.assign({}, cur[si], {weight:s.weight!=null?String(s.weight):cur[si].weight, reps:s.reps!=null?String(s.reps):cur[si].reps, done:true});
+        else cur.push({weight:s.weight!=null?String(s.weight):'', reps:s.reps!=null?String(s.reps):'', done:true});
+        n[ei] = cur; return n;
+      });
+    });
+  }, []);
   const onFb = useCallback(function(ei, done, adj, msg) {
+    setWSets(function(p) {
+      const n = Object.assign({}, p);
+      const cur = (n[ei] || []).slice();
+      adj.forEach(function(s, i) {
+        const ti = done + i;
+        if (ti < cur.length) cur[ti] = Object.assign({}, cur[ti], {weight:s.weight!=null?String(s.weight):cur[ti].weight, reps:s.reps!=null?String(s.reps):cur[ti].reps});
+        else cur.push({weight:s.weight!=null?String(s.weight):'', reps:s.reps!=null?String(s.reps):'', done:false});
+      });
+      n[ei] = cur; return n;
+    });
+    if (msg) setTip(msg); toast$('Sets adjusted');
+  }, []);
     setWSets(function(p){ const n=Object.assign({},p); const cur=(n[ei]||[]).slice(); adj.forEach(function(s,i){ const ti=done+i; if(ti<cur.length) cur[ti]=Object.assign({},cur[ti],{weight:s.weight!=null?String(s.weight):cur[ti].weight,reps:s.reps!=null?String(s.reps):cur[ti].reps}); else cur.push({weight:s.weight!=null?String(s.weight):'',reps:s.reps!=null?String(s.reps):'',done:false}); }); n[ei]=cur; return n; });
     if (msg) setTip(msg); toast$('Sets adjusted');
   }, []);
