@@ -598,12 +598,16 @@ if ('caches' in window) {
 
 <!-- SPLASH -->
 <div id="screen-splash" class="screen active">
-  <div class="splash-bg"></div>
+  <div class="splash-bg">
+      <button class="btn-secondary" onclick="showSettings()" style="margin-top:8px">⚙ API KEY SETTINGS</button></div>
   <div class="splash-content">
     <div class="splash-logo">FORGE</div>
     <div class="splash-tagline">Your AI Personal Trainer</div>
     <div class="splash-btns">
       <button class="btn-primary" onclick="startOnboarding()">GET STARTED</button>
+      <div id="splash-key-banner" style="display:none;background:rgba(255,68,68,.1);border:1px solid var(--red);padding:10px 16px;font-size:13px;color:#ff8888;margin-top:8px;text-align:center;border-radius:4px;">
+        ⚠️ No API key set — tap Settings below
+      </div>
       <button class="btn-secondary" id="btn-return" style="display:none" onclick="goToDashboard()">RETURN TO TRAINING</button>
     </div>
   </div>
@@ -687,6 +691,11 @@ if ('caches' in window) {
       <div class="input-group">
         <label class="input-label">Your name</label>
         <input class="input-field" id="user-name" type="text" placeholder="e.g. Alex" />
+      </div>
+      <div class="input-group">
+        <label class="input-label">Preferred training split <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+        <input class="input-field" id="user-split" type="text" placeholder="e.g. Push/Pull/Legs, 2 Upper / 2 Lower, or leave blank" />
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">If you enter a split, the AI will follow it exactly every week.</div>
       </div>
       <div class="input-group">
         <label class="input-label">How are you feeling? Any injuries or notes?</label>
@@ -951,6 +960,9 @@ let state = {
   chatHistory: [],
   weekNum: 1,
 };
+// API key stored separately (not in main state so it persists across resets)
+function getApiKey() { return localStorage.getItem('forge_api_key') || ''; }
+function setApiKey(k) { localStorage.setItem('forge_api_key', k); }
 let onboardStep = 1;
 const TOTAL_STEPS = 5;
 const onboardData = {};
@@ -970,6 +982,7 @@ function loadState() {
 
 // ===== INIT =====
 window.onload = () => {
+  checkApiKeyOnStart();
   if (loadState() && state.profile && state.weekPlan) {
     document.getElementById('btn-return').style.display = 'inline-block';
   }
@@ -1057,7 +1070,8 @@ function onboardBack() {
 async function submitOnboarding() {
   const name = document.getElementById('user-name').value.trim() || 'Athlete';
   const notes = document.getElementById('user-notes').value.trim();
-  state.profile = { name, goal: onboardData.goal, experience: onboardData.experience, days: onboardData.days, equipment: onboardData.equipment, notes };
+  const split = document.getElementById('user-split') ? document.getElementById('user-split').value.trim() : '';
+  state.profile = { name, goal: onboardData.goal, experience: onboardData.experience, days: onboardData.days, equipment: onboardData.equipment, notes, split };
   showScreen('generating');
   await generateWeekPlan();
 }
@@ -1069,7 +1083,7 @@ async function generateWeekPlan() {
   const daysStr = p.days;
   let trainingDaysCount;
   if (daysStr.includes('flexible') || daysStr.includes('4-5')) trainingDaysCount = 5;
-  else if (daysStr.includes('surprise') || daysStr.includes('Not sure')) trainingDaysCount = 4;
+  else if (daysStr.includes('surprise') || daysStr.includes('Not sure') || daysStr.includes('sure')) trainingDaysCount = 4;
   else trainingDaysCount = parseInt(daysStr) || 4;
 
   // Recommend split based on days + goal
@@ -1092,7 +1106,7 @@ STRICT RULES — YOU MUST FOLLOW THESE:
 1. The "days" array MUST contain EXACTLY 7 entries (one per day of the week, Mon–Sun).
 2. EXACTLY ${trainingDaysCount} of those days must have isRest: false with a full exercise list.
 3. The remaining ${7 - trainingDaysCount} days must have isRest: true and an empty exercises array.
-4. Do NOT default to Full Body for every day unless the person has 2-3 training days. For ${trainingDaysCount} days, use a proper split like: ${recommendedSplit}.
+4. SPLIT STRUCTURE: ${p.split ? `The athlete has requested this specific split: "${p.split}" — YOU MUST FOLLOW THIS EXACTLY, do not deviate.` : `Do NOT default to Full Body for every day unless the person has 2-3 training days. For ${trainingDaysCount} days, use a proper split like: ${recommendedSplit}.`}
 5. Each training day MUST have at least 4 exercises, each with sets, reps, rest, and coaching notes.
 6. Tailor exercise selection to the equipment available: ${p.equipment}.
 
@@ -1103,6 +1117,9 @@ Athlete Profile:
 - Equipment: ${p.equipment}
 - Training days: ${trainingDaysCount} days/week
 - Notes / injuries: ${p.notes || 'None'}
+- Requested split: ${p.split || 'None — use recommended split above'}
+
+FINAL CHECK BEFORE RESPONDING: Count your days array. It must have EXACTLY 7 entries. Exactly ${trainingDaysCount} must have isRest:false. If the count is wrong, fix it before responding.
 
 Respond with ONLY valid JSON — no markdown, no backticks, no extra text:
 {
@@ -1133,7 +1150,12 @@ Respond with ONLY valid JSON — no markdown, no backticks, no extra text:
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 3000,
@@ -1340,7 +1362,12 @@ async function loadCoachTip(day) {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 200,
@@ -1402,7 +1429,7 @@ async function regenerateWeekPlan() {
   const daysStr = p.days;
   let trainingDaysCount;
   if (daysStr.includes('flexible') || daysStr.includes('4-5')) trainingDaysCount = 5;
-  else if (daysStr.includes('surprise') || daysStr.includes('Not sure')) trainingDaysCount = 4;
+  else if (daysStr.includes('surprise') || daysStr.includes('Not sure') || daysStr.includes('sure')) trainingDaysCount = 4;
   else trainingDaysCount = parseInt(daysStr) || 4;
 
   const prompt = `You are FORGE AI. Create week ${state.weekNum} training plan with progressive overload from last week.
@@ -1427,7 +1454,12 @@ Return ONLY valid JSON, no markdown:
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2000,
@@ -1527,7 +1559,12 @@ async function askAIAboutLog(text) {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 150,
@@ -1639,7 +1676,12 @@ Be specific, encouraging, and practical. Keep responses concise (under 200 words
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 500,
@@ -1819,7 +1861,12 @@ async function aiSuggestExercise() {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 300,
@@ -1950,7 +1997,12 @@ async function submitSwap() {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 400,
@@ -2084,7 +2136,12 @@ async function importFreeform() {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1500,
@@ -2226,7 +2283,12 @@ STRICT: Return ONLY valid JSON, same schema as before:
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 3000,
@@ -2454,6 +2516,79 @@ window.addEventListener('load', () => {
   setupPWA();
   registerServiceWorker();
 });
+
+// ===== SETTINGS =====
+function showSettings() {
+  const key = getApiKey();
+  const inp = document.getElementById('settings-api-key');
+  if (inp) inp.value = key ? '••••••••' + key.slice(-8) : '';
+  const status = document.getElementById('settings-key-status');
+  if (status) status.textContent = key ? '✓ Key saved' : '';
+  if (status) status.style.color = 'var(--green)';
+  showScreen('settings');
+}
+
+async function saveSettingsKey() {
+  const inp = document.getElementById('settings-api-key');
+  const status = document.getElementById('settings-key-status');
+  const val = inp.value.trim();
+  if (!val || val.startsWith('•')) { status.textContent = 'Enter a new key to update.'; status.style.color = 'var(--muted)'; return; }
+  if (!val.startsWith('sk-ant-')) { status.textContent = '✗ Key must start with sk-ant-'; status.style.color = 'var(--red)'; return; }
+  status.textContent = 'Verifying...'; status.style.color = 'var(--muted)';
+  setApiKey(val);
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': val, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 10, messages: [{ role: 'user', content: 'hi' }] })
+    });
+    if (res.ok || res.status === 400) {
+      status.textContent = '✓ Key verified and saved!'; status.style.color = 'var(--green)';
+      inp.value = '••••••••' + val.slice(-8);
+    } else {
+      status.textContent = '✗ Invalid key (status ' + res.status + ')'; status.style.color = 'var(--red)';
+      setApiKey('');
+    }
+  } catch(e) {
+    status.textContent = '✗ Network error — check connection'; status.style.color = 'var(--red)';
+    setApiKey('');
+  }
+}
+
+function checkApiKeyOnStart() {
+  const key = getApiKey();
+  if (!key) {
+    // Show a key prompt on the splash screen
+    const banner = document.getElementById('splash-key-banner');
+    if (banner) banner.style.display = 'block';
+  }
+}
+
 </script>
+
+<!-- SETTINGS SCREEN -->
+<div id="screen-settings" class="screen">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('splash')">← Back</button>
+    <div class="screen-title">Settings</div>
+  </div>
+  <div class="settings-body" style="padding:24px 20px;">
+    <div class="settings-section">
+      <div class="settings-label">Anthropic API Key</div>
+      <div class="settings-description" style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
+        Get your key at <strong style="color:var(--accent)">console.anthropic.com</strong> → API Keys.<br>
+        Stored only on this device. Typical cost: ~$0.05–0.10/week.
+      </div>
+      <input id="settings-api-key" class="input-field" type="password" placeholder="sk-ant-api03-..." style="margin-bottom:8px;font-family:monospace;"/>
+      <div id="settings-key-status" style="font-size:12px;margin-bottom:12px;min-height:18px;"></div>
+      <button class="btn-primary" onclick="saveSettingsKey()" style="width:100%">SAVE & VERIFY KEY</button>
+    </div>
+    <div style="margin-top:32px;padding-top:20px;border-top:1px solid var(--border);">
+      <div class="settings-label" style="margin-bottom:12px;">Danger Zone</div>
+      <button class="btn-secondary" onclick="if(confirm('Reset all data? This cannot be undone.')) { localStorage.clear(); location.reload(); }" style="width:100%;border-color:var(--red);color:var(--red)">RESET ALL DATA</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
